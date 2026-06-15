@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react'
 import { TopBarCliente } from '@/components/layout/TopBarCliente'
 import { RoadmapProvider, useRoadmap } from '@/context/RoadmapContext'
 import { useAuth } from '@/context/AuthContext'
@@ -23,6 +24,12 @@ const PASOS = [
 
 function RoadmapInner() {
   const { pasoActivo, setPasoActivo, progreso, loading } = useRoadmap()
+  const mainRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0)
+    window.scrollTo(0, 0)
+  }, [pasoActivo])
 
   if (loading) {
     return (
@@ -76,7 +83,7 @@ function RoadmapInner() {
         </div>
       </div>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main ref={mainRef} className="max-w-4xl mx-auto px-4 py-8">
         <div className="animate-fade-in-up" key={pasoActivo}>
           {renderPaso()}
         </div>

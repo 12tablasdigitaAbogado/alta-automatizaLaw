@@ -106,7 +106,7 @@ export default function FichaCliente() {
   const subcarpetasSalidas = subcarpetasModelos.filter(c => c !== 'intake')
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-4 sm:p-6 md:p-8 max-w-5xl">
       {/* Back */}
       <Link to="/admin/clientes" className="flex items-center gap-1.5 text-sm text-text-dim hover:text-text mb-6 transition-colors w-fit">
         <ArrowLeft className="w-4 h-4" />
@@ -114,12 +114,12 @@ export default function FichaCliente() {
       </Link>
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6 md:mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-text">{estudio.denominacion || 'Sin nombre'}</h1>
-          <p className="text-text-dim mt-1">{estudio.abogadoResponsable} · {usuario.email}</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-text">{estudio.denominacion || 'Sin nombre'}</h1>
+          <p className="text-text-dim mt-1 text-sm">{estudio.abogadoResponsable} · {usuario.email}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <span className={cn(
             'text-xs px-3 py-1.5 rounded-full border font-medium',
             alta.estado === 'agendada' ? 'text-teal bg-teal/8 border-teal/20' :
@@ -157,7 +157,7 @@ export default function FichaCliente() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-5">
         {/* Columna principal */}
         <div className="space-y-5">
 
@@ -299,7 +299,7 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? '�
 
         {/* Columna runbook */}
         <div>
-          <div className="bg-bg-card border border-border rounded-2xl p-5 sticky top-8">
+          <div className="bg-bg-card border border-border rounded-2xl p-5 xl:sticky xl:top-8">
             <h3 className="text-sm font-semibold text-text mb-1">Runbook del alta</h3>
             <p className="text-xs text-text-dim mb-4">Tildá cada paso durante la reunión.</p>
 

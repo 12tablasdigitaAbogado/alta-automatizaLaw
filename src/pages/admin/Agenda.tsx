@@ -62,8 +62,8 @@ export default function Agenda() {
   const altasDelDia = diaSeleccionado ? altasPorFecha(diaSeleccionado) : []
 
   return (
-    <div className="p-8">
-      <div className="flex items-center gap-3 mb-8">
+    <div className="p-4 sm:p-6 md:p-8">
+      <div className="flex items-center gap-3 mb-6 md:mb-8">
         <div className="w-10 h-10 rounded-xl bg-teal/10 border border-teal/25 flex items-center justify-center">
           <CalendarDays className="w-5 h-5 text-teal" />
         </div>
@@ -72,12 +72,12 @@ export default function Agenda() {
           <p className="text-sm text-text-dim">Altas agendadas y realizadas</p>
         </div>
         {/* TODO Fase 2 badge */}
-        <span className="ml-auto text-xs px-2.5 py-1 bg-warning/8 border border-warning/15 text-warning rounded-full">
+        <span className="ml-auto text-xs px-2.5 py-1 bg-warning/8 border border-warning/15 text-warning rounded-full hidden sm:inline">
           TODO Fase 2: conectar Calendly
         </span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
         {/* Calendario */}
         <div className="bg-bg-card border border-border rounded-2xl overflow-hidden">
           {/* Header del calendario */}
@@ -105,7 +105,7 @@ export default function Agenda() {
           {/* Grilla */}
           <div className="grid grid-cols-7">
             {celdas.map((dia, i) => {
-              if (dia <= 0) return <div key={`empty-${i}`} className="h-16 border-r border-b border-border/30 last:border-r-0" />
+              if (dia <= 0) return <div key={`empty-${i}`} className="h-12 sm:h-16 border-r border-b border-border/30 last:border-r-0" />
 
               const fechaStr = `${año}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
               const altas = altasPorFecha(fechaStr)
@@ -117,7 +117,7 @@ export default function Agenda() {
                   key={fechaStr}
                   onClick={() => setDiaSeleccionado(seleccionado ? null : fechaStr)}
                   className={cn(
-                    'h-16 border-r border-b border-border/30 last:border-r-0 relative p-1.5 text-left transition-all',
+                    'h-12 sm:h-16 border-r border-b border-border/30 last:border-r-0 relative p-1 sm:p-1.5 text-left transition-all',
                     seleccionado && 'bg-teal/8',
                     !seleccionado && 'hover:bg-bg-3'
                   )}

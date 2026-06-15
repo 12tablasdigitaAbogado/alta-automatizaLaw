@@ -49,9 +49,9 @@ export default function Solicitudes() {
   const pendientesCount = solicitudes.length
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-6 md:mb-8">
         <div className="w-10 h-10 rounded-xl bg-purple/10 border border-purple/25 flex items-center justify-center">
           <Clock className="w-5 h-5 text-purple-light" />
         </div>

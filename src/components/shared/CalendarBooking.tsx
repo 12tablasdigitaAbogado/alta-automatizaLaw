@@ -42,7 +42,7 @@ export function CalendarBooking() {
     <div
       ref={ref}
       className="w-full rounded-2xl overflow-hidden"
-      style={{ minWidth: '320px', height: '700px' }}
+      style={{ minWidth: '320px', height: 'min(700px, 80vh)' }}
     />
   )
 }

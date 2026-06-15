@@ -24,7 +24,7 @@ export function Bienvenida() {
         <div className="w-16 h-16 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center mx-auto mb-5 glow-teal">
           <Zap className="w-8 h-8 text-teal" />
         </div>
-        <h1 className="text-3xl font-bold text-text mb-3 tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold text-text mb-3 tracking-tight">
           Bienvenido al setup de tu asistente
         </h1>
         <p className="text-text-dim text-base leading-relaxed">
