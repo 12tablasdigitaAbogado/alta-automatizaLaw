@@ -299,14 +299,12 @@ async function computeYGuardar(estudioId: string): Promise<ProgresoRoadmap> {
     { data: chkRow },
     { data: cfgRow },
     { data: progresoRow },
-    { data: estudioCtx },
   ] = await Promise.all([
-    supabase.from('estudios').select('denominacion, abogado_responsable, matricula, domicilio, telefono, email_estudio, perfil_id').eq('id', estudioId).single(),
+    supabase.from('estudios').select('denominacion, abogado_responsable, matricula, domicilio, telefono, email_estudio, perfil_id, contexto').eq('id', estudioId).single(),
     supabase.from('documentos').select('carpeta').eq('estudio_id', estudioId),
     supabase.from('checklist_tecnico').select('*').eq('estudio_id', estudioId).single(),
     supabase.from('configuracion_modulos').select('modulos').eq('estudio_id', estudioId).single(),
     supabase.from('progreso_roadmap').select('pasos').eq('estudio_id', estudioId).single(),
-    supabase.from('estudios').select('contexto').eq('id', estudioId).single(),
   ])
 
   const identidadCompleta = !!(
@@ -325,7 +323,7 @@ async function computeYGuardar(estudioId: string): Promise<ProgresoRoadmap> {
     .filter(c => c.obligatorio)
     .every(c => docList.filter((d: { carpeta: string }) => d.carpeta === c.carpeta).length >= c.minArchivos)
 
-  const contexto = (estudioCtx?.contexto as ContextoEstudio) ?? {}
+  const contexto = (estudioRow?.contexto as ContextoEstudio) ?? {}
   const camposObligatorios = skillIds.flatMap(id => {
     const skill = SKILL_MAP[id]
     return skill ? skill.contexto.filter(c => c.obligatorio) : []

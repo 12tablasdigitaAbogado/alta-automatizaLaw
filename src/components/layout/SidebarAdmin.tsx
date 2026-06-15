@@ -21,7 +21,7 @@ export function SidebarAdmin() {
             <Zap className="w-4 h-4 text-teal" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-text">Cerebro del Estudio</p>
+            <p className="text-sm font-semibold text-text">AutomatizaLaw</p>
             <p className="text-xs text-text-faint">Panel operador</p>
           </div>
         </div>

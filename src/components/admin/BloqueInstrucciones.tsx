@@ -15,8 +15,6 @@ Abogado/a responsable: ${estudio.abogadoResponsable}
 Matrícula (tomo y folio / colegio): ${estudio.matricula}
 Domicilio: ${estudio.domicilio}
 Teléfono / Email: ${estudio.telefono} / ${estudio.email}
-Jurisdicción: ${estudio.jurisdiccion}
-Fuero principal: ${estudio.fueroPrincipal}
 Estilo: ${estudio.estiloRedaccion || 'No especificado'}
 Pie de firma: ${estudio.pieFirma || 'No especificado'}
 

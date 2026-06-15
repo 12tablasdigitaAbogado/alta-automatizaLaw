@@ -72,8 +72,8 @@ export default function Login() {
         <div className="w-14 h-14 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center mx-auto mb-4 glow-teal">
           <Zap className="w-7 h-7 text-teal" />
         </div>
-        <h1 className="text-2xl font-bold text-text tracking-tight">Cerebro del Estudio</h1>
-        <p className="text-text-dim text-sm mt-1">Onboarding para estudios jurídicos</p>
+        <h1 className="text-2xl font-bold text-text tracking-tight">AutomatizaLaw</h1>
+        <p className="text-text-dim text-sm mt-1">Automatizá tu estudio jurídico con IA</p>
       </div>
 
       <div className="flex bg-bg-3 rounded-xl p-1 mb-5 border border-border">

@@ -15,7 +15,7 @@ export function TopBarCliente() {
           <div className="w-7 h-7 rounded-md bg-teal/10 border border-teal/30 flex items-center justify-center">
             <Zap className="w-3.5 h-3.5 text-teal" />
           </div>
-          <span className="text-sm font-semibold text-text hidden sm:block">Cerebro del Estudio</span>
+          <span className="text-sm font-semibold text-text hidden sm:block">AutomatizaLaw</span>
         </div>
 
         {/* Progress pill */}
