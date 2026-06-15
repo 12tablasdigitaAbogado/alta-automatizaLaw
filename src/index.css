@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0f0f12;
+  --color-bg-2: #141418;
+  --color-bg-3: #1a1a20;
+  --color-bg-card: #131318;
+  --color-border: #252530;
+  --color-border-soft: #1c1c24;
+  --color-text: #e8e8f0;
+  --color-text-dim: #9898a8;
+  --color-text-faint: #5a5a6a;
+  --color-teal: #00e0cf;
+  --color-teal-hover: #33e8da;
+  --color-teal-soft: #00b8a9;
+  --color-purple: #8b3ee5;
+  --color-purple-light: #b07ef5;
+  --color-warning: #d4a857;
+  --color-coral: #c97264;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #0f0f12;
+  color: #e8e8f0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #141418;
+}
+::-webkit-scrollbar-thumb {
+  background: #252530;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #353545;
+}
+
+.glow-teal {
+  box-shadow: 0 0 24px rgba(0, 224, 207, 0.18), 0 0 48px rgba(0, 224, 207, 0.06);
+}
+.glow-purple {
+  box-shadow: 0 0 24px rgba(139, 62, 229, 0.22), 0 0 48px rgba(139, 62, 229, 0.08);
+}
+.text-glow-teal {
+  text-shadow: 0 0 14px rgba(0, 224, 207, 0.55);
+}
+
+@keyframes unlock {
+  0%   { transform: scale(1) rotate(0deg); }
+  30%  { transform: scale(1.2) rotate(-10deg); }
+  60%  { transform: scale(1.1) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.animate-unlock {
+  animation: unlock 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.35s ease-out both;
+}
+
+.input-field {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0.625rem 0;
+  font-size: 0.875rem;
+  color: #e8e8f0;
+}
+.input-field::placeholder {
+  color: #5a5a6a;
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.75rem;
+  background-color: #00e0cf;
+  color: #0f0f12;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+.btn-primary:hover {
+  background-color: #33e8da;
+}
+
