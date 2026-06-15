@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Copy, Check, CheckSquare, Square,
-  CalendarDays, FolderOpen, FileText, Puzzle, Download, ExternalLink
+  CalendarDays, FolderOpen, FileText, Puzzle, Download
 } from 'lucide-react'
+import { zip, strToU8 } from 'fflate'
 import type { ClienteResumen } from '@/types'
 import { usuarioService } from '@/services'
+import { supabase } from '@/lib/supabase'
 import { SKILL_MAP, carpetasDeSkills } from '@/data/skills'
-import { LABELS_CONECTOR, LABELS_ESTADO_ALTA, LABEL_CARPETA, formatFecha, cn } from '@/lib/utils'
+import { LABELS_CONECTOR, LABELS_ESTADO_ALTA, LABEL_CARPETA, cn } from '@/lib/utils'
 
 const RUNBOOK: { id: string; label: string }[] = [
   { id: 'drive-estructura', label: 'Crear estructura de carpetas en Drive del estudio' },
@@ -56,6 +58,7 @@ export default function FichaCliente() {
   const [runbook, setRunbook] = useState<Record<string, boolean>>({})
   const [driveId, setDriveId] = useState('')
   const [copiado, setCopiado] = useState(false)
+  const [descargando, setDescargando] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -76,6 +79,36 @@ export default function FichaCliente() {
     navigator.clipboard.writeText(generarContextoMd(data, driveId))
     setCopiado(true)
     setTimeout(() => setCopiado(false), 2000)
+  }
+
+  const descargarZip = async () => {
+    if (!data || descargando) return
+    setDescargando(true)
+    try {
+      const nombre = data.estudio.denominacion || 'estudio'
+      const archivos: Record<string, Uint8Array> = {
+        [`${nombre}/.estudio/contexto.md`]: strToU8(generarContextoMd(data, driveId)),
+      }
+
+      await Promise.all(data.documentos.map(async doc => {
+        const storagePath = `${doc.estudioId}/${doc.carpeta}/${doc.id}-${doc.nombre}`
+        const { data: blob, error } = await supabase.storage.from('modelos').download(storagePath)
+        if (error || !blob) return
+        archivos[`${nombre}/modelos/${doc.carpeta}/${doc.nombre}`] = new Uint8Array(await blob.arrayBuffer())
+      }))
+
+      zip(archivos, (err, bytes) => {
+        if (err) return
+        const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }))
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${nombre}.zip`
+        a.click()
+        URL.revokeObjectURL(url)
+      })
+    } finally {
+      setDescargando(false)
+    }
   }
 
   if (loading) {
@@ -143,17 +176,8 @@ export default function FichaCliente() {
           <CalendarDays className="w-5 h-5 text-teal shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium text-teal">Alta agendada</p>
-            <p className="text-sm text-text-dim mt-0.5">
-              {alta.fecha && formatFecha(alta.fecha)} · {alta.horaInicio}–{alta.horaFin}
-            </p>
+            <p className="text-sm text-text-dim mt-0.5">Reunión confirmada vía Calendly</p>
           </div>
-          {alta.linkMeet && (
-            <a href={alta.linkMeet} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-sm text-teal border border-teal/30 px-3 py-1.5 rounded-lg hover:bg-teal/8 transition-colors">
-              <ExternalLink className="w-3.5 h-3.5" />
-              Abrir Meet
-            </a>
-          )}
         </div>
       )}
 
@@ -220,11 +244,15 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? '�
                 <h3 className="text-sm font-semibold text-text">Modelos → carpeta Drive</h3>
               </div>
               <button
-                onClick={() => alert('TODO Fase 2: descargar ZIP con estructura de carpetas derivada de skills')}
-                className="flex items-center gap-1.5 text-xs text-text-dim border border-border px-3 py-1.5 rounded-lg hover:border-teal/30 hover:text-teal transition-colors"
+                onClick={descargarZip}
+                disabled={descargando}
+                className="flex items-center gap-1.5 text-xs text-text-dim border border-border px-3 py-1.5 rounded-lg hover:border-teal/30 hover:text-teal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Download className="w-3.5 h-3.5" />
-                ZIP
+                {descargando
+                  ? <div className="w-3.5 h-3.5 border border-text-dim border-t-teal rounded-full animate-spin" />
+                  : <Download className="w-3.5 h-3.5" />
+                }
+                {descargando ? 'Descargando...' : 'ZIP'}
               </button>
             </div>
             {documentos.length === 0 ? (

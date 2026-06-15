@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Search, ChevronRight, Users } from 'lucide-react'
 import type { ClienteResumen } from '@/types'
 import { usuarioService } from '@/services'
-import { LABELS_ESTADO_ALTA, formatFecha, cn } from '@/lib/utils'
+import { LABELS_ESTADO_ALTA, cn } from '@/lib/utils'
 
 const ESTADO_COLORES = {
   pendiente: 'text-text-faint bg-bg-3 border-border',
@@ -24,8 +24,9 @@ export default function ListaClientes() {
   }, [])
 
   const filtrados = clientes.filter(c =>
-    c.estudio.denominacion.toLowerCase().includes(busqueda.toLowerCase()) ||
-    c.usuario.email.toLowerCase().includes(busqueda.toLowerCase())
+    c.usuario.estado === 'activo' &&
+    (c.estudio.denominacion.toLowerCase().includes(busqueda.toLowerCase()) ||
+    c.usuario.email.toLowerCase().includes(busqueda.toLowerCase()))
   )
 
   return (
@@ -69,11 +70,10 @@ export default function ListaClientes() {
           {/* Tabla — scrollable en mobile */}
           <div className="overflow-x-auto">
             <div className="min-w-[560px]">
-              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-0 text-xs text-text-faint uppercase tracking-widest px-5 py-3 border-b border-border">
+              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-0 text-xs text-text-faint uppercase tracking-widest px-5 py-3 border-b border-border">
                 <span>Estudio</span>
                 <span>Avance</span>
                 <span>Estado</span>
-                <span>Fecha alta</span>
                 <span>Contacto</span>
                 <span />
               </div>
@@ -81,7 +81,7 @@ export default function ListaClientes() {
                 <Link
                   key={usuario.id}
                   to={`/admin/clientes/${usuario.id}`}
-                  className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-0 px-5 py-4 items-center border-b border-border/50 hover:bg-bg-3 transition-colors group last:border-0"
+                  className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-0 px-5 py-4 items-center border-b border-border/50 hover:bg-bg-3 transition-colors group last:border-0"
                 >
                   {/* Estudio */}
                   <div>
@@ -111,9 +111,6 @@ export default function ListaClientes() {
                       {LABELS_ESTADO_ALTA[alta.estado]}
                     </span>
                   </div>
-
-                  {/* Fecha */}
-                  <span className="text-sm text-text-dim">{alta.fecha ? formatFecha(alta.fecha) : '—'}</span>
 
                   {/* Email */}
                   <span className="text-sm text-text-faint truncate max-w-32">{usuario.email}</span>
