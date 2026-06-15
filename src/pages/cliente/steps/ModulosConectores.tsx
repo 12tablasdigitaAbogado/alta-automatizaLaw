@@ -101,9 +101,9 @@ export function ModulosConectores() {
                     <p className={cn('text-sm font-medium', seleccionado ? 'text-teal' : 'text-text')}>
                       {skill.nombre}
                     </p>
-                    <p className="text-xs text-text-dim mt-0.5">{skill.descripcion}</p>
+                    <p className="text-sm text-text-dim mt-0.5">{skill.descripcion}</p>
                     {seleccionado && (
-                      <p className="text-xs text-teal/60 mt-1">
+                      <p className="text-sm text-teal/80 mt-1">
                         Requiere: {skill.modelos.map(m => m.carpeta).join(', ')}
                       </p>
                     )}
@@ -113,28 +113,28 @@ export function ModulosConectores() {
                 {/* Campos de contexto — solo cuando está seleccionada y tiene campos nuevos */}
                 {seleccionado && camposNuevos.length > 0 && (
                   <div className="px-4 pb-4 pt-0 border-t border-teal/15 space-y-3">
-                    <p className="text-xs text-teal/70 font-medium pt-3">Contexto para esta skill</p>
+                    <p className="text-sm text-teal font-medium pt-3">Contexto para esta skill</p>
                     {camposNuevos.map(campo => (
                       <div key={campo.id}>
-                        <label className="block text-xs font-medium text-text mb-1">
+                        <label className="block text-sm font-medium text-text mb-1">
                           {campo.label}
                           {campo.obligatorio && <span className="text-teal ml-1">*</span>}
                         </label>
                         {campo.ayuda && (
-                          <p className="text-xs text-text-faint mb-1.5">{campo.ayuda}</p>
+                          <p className="text-sm text-text-dim mb-1.5">{campo.ayuda}</p>
                         )}
                         {campo.tipo === 'textarea' ? (
                           <textarea
                             value={contexto[campo.id] ?? ''}
                             onChange={e => handleContexto(campo.id, e.target.value)}
                             rows={2}
-                            className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-xs text-text placeholder:text-text-faint resize-none outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20 transition-colors"
+                            className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-text-faint resize-none outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20 transition-colors"
                           />
                         ) : campo.tipo === 'select' && campo.opciones ? (
                           <select
                             value={contexto[campo.id] ?? ''}
                             onChange={e => handleContexto(campo.id, e.target.value)}
-                            className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-xs text-text outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20 transition-colors"
+                            className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20 transition-colors"
                           >
                             <option value="">Seleccioná una opción</option>
                             {campo.opciones.map(op => (
@@ -146,7 +146,7 @@ export function ModulosConectores() {
                             type="text"
                             value={contexto[campo.id] ?? ''}
                             onChange={e => handleContexto(campo.id, e.target.value)}
-                            className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-xs text-text placeholder:text-text-faint outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20 transition-colors"
+                            className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-text-faint outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20 transition-colors"
                           />
                         )}
                       </div>
@@ -162,7 +162,7 @@ export function ModulosConectores() {
       {/* Conectores */}
       <div className="mb-2">
         <h2 className="text-sm font-semibold text-text mb-1">Conectores</h2>
-        <p className="text-xs text-text-faint mb-3">Integraciones que el asistente podrá usar durante las sesiones.</p>
+        <p className="text-sm text-text-dim mb-3">Integraciones que el asistente podrá usar durante las sesiones.</p>
         <div className="space-y-2">
           {CONECTORES_DISPONIBLES.map(({ id, desc, icono }) => {
             const seleccionado = conectores.includes(id)
@@ -189,7 +189,7 @@ export function ModulosConectores() {
                     <p className={cn('text-sm font-medium', seleccionado ? 'text-purple-light' : 'text-text')}>
                       {LABELS_CONECTOR[id]}
                     </p>
-                    <p className="text-xs text-text-dim mt-0.5">{desc}</p>
+                    <p className="text-sm text-text-dim mt-0.5">{desc}</p>
                   </div>
                 </div>
               </button>

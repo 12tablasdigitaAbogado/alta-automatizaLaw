@@ -86,7 +86,7 @@ export default function ListaClientes() {
                   {/* Estudio */}
                   <div>
                     <p className="text-sm font-medium text-text">{estudio.denominacion}</p>
-                    <p className="text-xs text-text-faint mt-0.5">{estudio.abogadoResponsable}</p>
+                    <p className="text-sm text-text-faint mt-0.5">{estudio.abogadoResponsable}</p>
                   </div>
 
                   {/* Avance */}
@@ -97,7 +97,7 @@ export default function ListaClientes() {
                         style={{ width: `${progreso.porcentaje}%` }}
                       />
                     </div>
-                    <span className={cn('text-xs font-medium tabular-nums', progreso.porcentaje === 100 ? 'text-teal' : 'text-text-dim')}>
+                    <span className={cn('text-sm font-medium tabular-nums', progreso.porcentaje === 100 ? 'text-teal' : 'text-text-dim')}>
                       {progreso.porcentaje}%
                     </span>
                   </div>
@@ -116,7 +116,7 @@ export default function ListaClientes() {
                   <span className="text-sm text-text-dim">{alta.fecha ? formatFecha(alta.fecha) : '—'}</span>
 
                   {/* Email */}
-                  <span className="text-xs text-text-faint truncate max-w-32">{usuario.email}</span>
+                  <span className="text-sm text-text-faint truncate max-w-32">{usuario.email}</span>
 
                   {/* Arrow */}
                   <ChevronRight className="w-4 h-4 text-text-faint group-hover:text-teal transition-colors" />

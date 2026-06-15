@@ -113,7 +113,7 @@ export function ChecklistTecnico() {
                 <p className={cn('text-sm font-medium leading-snug', tildado ? 'text-teal' : 'text-text')}>
                   {label}
                 </p>
-                <p className="text-xs text-text-faint mt-1 leading-relaxed">{ayuda}</p>
+                <p className="text-sm text-text-dim mt-1 leading-relaxed">{ayuda}</p>
               </div>
             </button>
           )
@@ -121,7 +121,7 @@ export function ChecklistTecnico() {
       </div>
 
       {!completo && (
-        <p className="text-xs text-text-faint text-center mt-4">
+        <p className="text-sm text-text-dim text-center mt-4">
           Confirmá todos los ítems para habilitar el agendamiento.
         </p>
       )}

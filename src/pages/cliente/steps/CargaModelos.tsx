@@ -62,12 +62,12 @@ export function CargaModelos() {
         <div className="bg-bg-card border border-border rounded-2xl p-10 text-center">
           <FolderOpen className="w-10 h-10 text-text-faint mx-auto mb-3" />
           <p className="text-sm font-medium text-text mb-1">No hay skills seleccionadas</p>
-          <p className="text-xs text-text-dim mb-4">
+          <p className="text-sm text-text-dim mb-4">
             Las secciones de carga se generan a partir de las skills que elegiste en el paso anterior.
           </p>
           <button
             onClick={() => setPasoActivo(3)}
-            className="flex items-center gap-2 text-xs text-teal hover:text-teal/80 transition-colors mx-auto"
+            className="flex items-center gap-2 text-sm text-teal hover:text-teal/80 transition-colors mx-auto"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Volver a seleccionar skills
@@ -103,7 +103,7 @@ export function CargaModelos() {
         <ShieldAlert className="w-4 h-4 text-purple-light shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-medium text-purple-light">Solo plantillas, nunca expedientes</p>
-          <p className="text-xs text-text-dim mt-0.5">
+          <p className="text-sm text-text-dim mt-0.5">
             Subí únicamente modelos e identidad del estudio.{' '}
             <strong className="text-text">Nunca datos personales de clientes finales ni expedientes reales.</strong>
           </p>
@@ -132,16 +132,16 @@ export function CargaModelos() {
                       {LABEL_CARPETA[modelo.carpeta] ?? modelo.carpeta}
                     </h3>
                     {modelo.obligatorio && (
-                      <span className="text-xs text-teal font-medium">obligatorio</span>
+                      <span className="text-sm text-teal font-medium">obligatorio</span>
                     )}
                   </div>
-                  <p className="text-xs text-text-faint mt-0.5">
+                  <p className="text-sm text-text-dim mt-0.5">
                     Carpeta en Drive: <code className="text-text-dim">modelos/{modelo.carpeta}/</code>
                   </p>
                 </div>
                 <button
                   onClick={() => inputRefs.current[modelo.carpeta]?.click()}
-                  className="ml-3 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-bg-3 border border-border text-text-dim hover:text-teal hover:border-teal/40 transition-colors shrink-0"
+                  className="ml-3 flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-bg-3 border border-border text-text-dim hover:text-teal hover:border-teal/40 transition-colors shrink-0"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   Agregar
@@ -157,8 +157,8 @@ export function CargaModelos() {
               </div>
 
               {/* Ejemplo */}
-              <p className="text-xs text-text-faint mb-4 leading-relaxed">
-                <span className="text-text-dim">Ej:</span> {modelo.ejemplo}
+              <p className="text-sm text-text-dim mb-4 leading-relaxed">
+                <span className="text-text-dim font-medium">Ej:</span> {modelo.ejemplo}
               </p>
 
               {/* Archivos */}
@@ -168,7 +168,7 @@ export function CargaModelos() {
                   className="w-full border-2 border-dashed border-border rounded-xl p-5 text-center hover:border-teal/30 hover:bg-teal/3 transition-all group"
                 >
                   <Upload className="w-5 h-5 text-text-faint group-hover:text-teal mx-auto mb-1.5 transition-colors" />
-                  <p className="text-xs text-text-faint group-hover:text-text-dim transition-colors">
+                  <p className="text-sm text-text-dim group-hover:text-text transition-colors">
                     Hacé clic para seleccionar (.docx, .pdf, .txt)
                   </p>
                 </button>
@@ -179,7 +179,7 @@ export function CargaModelos() {
                       <FileText className="w-4 h-4 text-teal/60 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-text truncate">{doc.nombre}</p>
-                        <p className="text-xs text-text-faint">{formatBytes(doc.tamano)}</p>
+                        <p className="text-sm text-text-faint">{formatBytes(doc.tamano)}</p>
                       </div>
                       <button
                         onClick={() => removeDocumento(doc.id)}
@@ -198,7 +198,7 @@ export function CargaModelos() {
       </div>
 
       {!listo && (
-        <p className="text-xs text-text-faint text-center mt-4">
+        <p className="text-sm text-text-dim text-center mt-4">
           Cargá al menos un modelo en cada sección obligatoria para continuar.
         </p>
       )}

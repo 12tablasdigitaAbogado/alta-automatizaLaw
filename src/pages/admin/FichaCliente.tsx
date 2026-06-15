@@ -143,13 +143,13 @@ export default function FichaCliente() {
           <CalendarDays className="w-5 h-5 text-teal shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium text-teal">Alta agendada</p>
-            <p className="text-xs text-text-dim mt-0.5">
+            <p className="text-sm text-text-dim mt-0.5">
               {alta.fecha && formatFecha(alta.fecha)} Â· {alta.horaInicio}â€“{alta.horaFin}
             </p>
           </div>
           {alta.linkMeet && (
             <a href={alta.linkMeet} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-teal border border-teal/30 px-3 py-1.5 rounded-lg hover:bg-teal/8 transition-colors">
+              className="flex items-center gap-1.5 text-sm text-teal border border-teal/30 px-3 py-1.5 rounded-lg hover:bg-teal/8 transition-colors">
               <ExternalLink className="w-3.5 h-3.5" />
               Abrir Meet
             </a>
@@ -180,13 +180,13 @@ export default function FichaCliente() {
 
             {/* ID de carpeta Drive editable */}
             <div className="mb-3">
-              <label className="text-xs text-text-faint mb-1 block">ID de carpeta Drive del estudio</label>
+              <label className="text-sm text-text-dim mb-1 block">ID de carpeta Drive del estudio</label>
               <input
                 type="text"
                 value={driveId}
                 onChange={e => setDriveId(e.target.value)}
                 placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
-                className="w-full bg-bg-3 border border-border rounded-lg px-3 py-2 text-xs text-text placeholder:text-text-faint outline-none focus:border-teal/50 transition-colors font-mono"
+                className="w-full bg-bg-3 border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-text-faint outline-none focus:border-teal/50 transition-colors font-mono"
               />
             </div>
 
@@ -228,7 +228,7 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? 'â
               </button>
             </div>
             {documentos.length === 0 ? (
-              <p className="text-xs text-text-faint">El cliente no subiÃ³ modelos aÃºn.</p>
+              <p className="text-sm text-text-faint">El cliente no subiÃ³ modelos aÃºn.</p>
             ) : (
               <div className="space-y-3">
                 {carpetas.map(c => {
@@ -236,7 +236,7 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? 'â
                   if (docs.length === 0) return null
                   return (
                     <div key={c.carpeta}>
-                      <p className="text-xs font-medium text-text-dim mb-1.5">
+                      <p className="text-sm font-medium text-text-dim mb-1.5">
                         modelos/<span className="text-teal">{c.carpeta}/</span>
                         <span className="text-text-faint ml-1 font-normal">
                           ({LABEL_CARPETA[c.carpeta] ?? c.carpeta})
@@ -244,7 +244,7 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? 'â
                       </p>
                       <div className="space-y-1 pl-3">
                         {docs.map(doc => (
-                          <div key={doc.id} className="flex items-center gap-2 text-xs text-text-dim">
+                          <div key={doc.id} className="flex items-center gap-2 text-sm text-text-dim">
                             <span className="text-teal/50">Â·</span>
                             {doc.nombre}
                           </div>
@@ -265,13 +265,13 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? 'â
             </div>
             <div className="space-y-3">
               <div>
-                <p className="text-xs text-text-faint mb-1.5">Skills a activar</p>
+                <p className="text-sm text-text-dim mb-1.5">Skills a activar</p>
                 {skillIds.length === 0 ? (
-                  <p className="text-xs text-text-faint italic">Sin skills seleccionadas</p>
+                  <p className="text-sm text-text-faint italic">Sin skills seleccionadas</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {skillIds.map(id => (
-                      <span key={id} className="text-xs px-2.5 py-1 bg-teal/8 text-teal rounded-full border border-teal/15">
+                      <span key={id} className="text-sm px-2.5 py-1 bg-teal/8 text-teal rounded-full border border-teal/15">
                         {SKILL_MAP[id]?.nombre ?? id}
                       </span>
                     ))}
@@ -280,17 +280,17 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? 'â
               </div>
               {configuracion.conectores.length > 0 && (
                 <div>
-                  <p className="text-xs text-text-faint mb-1.5">Conectores a habilitar</p>
+                  <p className="text-sm text-text-dim mb-1.5">Conectores a habilitar</p>
                   <div className="flex flex-wrap gap-2">
                     {configuracion.conectores.map(c => (
-                      <span key={c} className="text-xs px-2.5 py-1 bg-purple/8 text-purple-light rounded-full border border-purple/15">
+                      <span key={c} className="text-sm px-2.5 py-1 bg-purple/8 text-purple-light rounded-full border border-purple/15">
                         {LABELS_CONECTOR[c]}
                       </span>
                     ))}
                   </div>
                 </div>
               )}
-              <p className="text-xs text-text-faint pt-1 border-t border-border">
+              <p className="text-sm text-text-dim pt-1 border-t border-border">
                 El plugin es estÃ¡tico â€” el mismo archivo para todos los estudios. Lo que varÃ­a es la carpeta Drive conectada.
               </p>
             </div>
@@ -301,7 +301,7 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? 'â
         <div>
           <div className="bg-bg-card border border-border rounded-2xl p-5 xl:sticky xl:top-8">
             <h3 className="text-sm font-semibold text-text mb-1">Runbook del alta</h3>
-            <p className="text-xs text-text-dim mb-4">TildÃ¡ cada paso durante la reuniÃ³n.</p>
+            <p className="text-sm text-text-dim mb-4">TildÃ¡ cada paso durante la reuniÃ³n.</p>
 
             <div className="flex items-center gap-2 mb-4">
               <div className="flex-1 h-1.5 bg-bg rounded-full overflow-hidden">
@@ -310,7 +310,7 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? 'â
                   style={{ width: `${(runbookCompletados / RUNBOOK.length) * 100}%` }}
                 />
               </div>
-              <span className="text-xs text-text-dim tabular-nums">{runbookCompletados}/{RUNBOOK.length}</span>
+              <span className="text-sm text-text-dim tabular-nums">{runbookCompletados}/{RUNBOOK.length}</span>
             </div>
 
             <div className="space-y-2">
@@ -329,7 +329,7 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? 'â
                     <Square className="w-4 h-4 text-text-faint shrink-0 mt-0.5" />
                   )}
                   <span className={cn(
-                    'text-xs leading-relaxed',
+                    'text-sm leading-relaxed',
                     runbook[item.id] ? 'text-text-dim line-through' : 'text-text'
                   )}>
                     {item.label}
@@ -340,7 +340,7 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? 'â
 
             {runbookCompletados === RUNBOOK.length && (
               <div className="mt-4 bg-teal/8 border border-teal/20 rounded-xl p-3 text-center">
-                <p className="text-xs text-teal font-medium">Â¡Alta completada!</p>
+                <p className="text-sm text-teal font-medium">Â¡Alta completada!</p>
               </div>
             )}
           </div>

@@ -44,7 +44,7 @@ export function Bienvenida() {
               </div>
               <div>
                 <p className="text-sm font-medium text-text">{titulo}</p>
-                <p className="text-xs text-text-dim mt-0.5 leading-relaxed">{desc}</p>
+                <p className="text-sm text-text-dim mt-0.5 leading-relaxed">{desc}</p>
               </div>
             </div>
           ))}

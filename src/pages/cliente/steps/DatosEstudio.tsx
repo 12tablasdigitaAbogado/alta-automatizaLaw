@@ -75,7 +75,7 @@ export function DatosEstudio() {
                 {label}
                 {requerido && <span className="text-teal ml-1">*</span>}
               </label>
-              {ayuda && <p className="text-xs text-text-faint mb-1.5">{ayuda}</p>}
+              {ayuda && <p className="text-sm text-text-dim mb-1.5">{ayuda}</p>}
               {esTextarea ? (
                 <textarea
                   value={valor}
@@ -110,7 +110,7 @@ export function DatosEstudio() {
       </div>
 
       {!completo && (
-        <p className="text-xs text-text-faint text-center mt-2">
+        <p className="text-sm text-text-dim text-center mt-2">
           Completá los campos obligatorios (<span className="text-teal">*</span>) para continuar.
         </p>
       )}

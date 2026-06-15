@@ -36,7 +36,7 @@ export function NavPasos({
         Anterior
       </button>
 
-      <span className="text-xs text-text-faint">
+      <span className="text-sm text-text-dim">
         {paso} de {totalPasos}
       </span>
 

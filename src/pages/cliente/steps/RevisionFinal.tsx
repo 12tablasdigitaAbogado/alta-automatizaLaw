@@ -86,7 +86,7 @@ export function RevisionFinal() {
               ['Email', estudio.email],
             ] as [string, string | undefined][]).map(([k, v]) => (
               <div key={k}>
-                <p className="text-xs text-text-faint mb-0.5">{k}</p>
+                <p className="text-sm text-text-faint mb-0.5">{k}</p>
                 <p className="text-text truncate">{v || '—'}</p>
               </div>
             ))}
@@ -107,7 +107,7 @@ export function RevisionFinal() {
         ) : (
           <div className="flex flex-wrap gap-2">
             {skillIds.map(id => (
-              <span key={id} className="text-xs px-2.5 py-1 bg-teal/8 text-teal rounded-full border border-teal/15">
+              <span key={id} className="text-sm px-2.5 py-1 bg-teal/8 text-teal rounded-full border border-teal/15">
                 {SKILL_MAP[id]?.nombre ?? id}
               </span>
             ))}
@@ -120,20 +120,20 @@ export function RevisionFinal() {
         <div className="flex items-center gap-2 mb-4">
           <FolderOpen className="w-4 h-4 text-text-dim" />
           <h2 className="text-sm font-semibold text-text">Modelos cargados</h2>
-          <span className="ml-auto text-xs text-text-dim">{documentos.length} archivo{documentos.length !== 1 ? 's' : ''}</span>
+          <span className="ml-auto text-sm text-text-dim">{documentos.length} archivo{documentos.length !== 1 ? 's' : ''}</span>
         </div>
         {carpetas.length === 0 ? (
-          <p className="text-xs text-text-faint">No hay skills seleccionadas.</p>
+          <p className="text-sm text-text-faint">No hay skills seleccionadas.</p>
         ) : modelosPorCarpeta.some(c => c.docs.length > 0) ? (
           <div className="space-y-3">
             {modelosPorCarpeta.map(c => (
               <div key={c.carpeta}>
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-xs text-text-dim font-medium">
+                  <p className="text-sm text-text-dim font-medium">
                     {LABEL_CARPETA[c.carpeta] ?? c.carpeta}
                   </p>
                   {c.obligatorio && !c.ok && (
-                    <span className="text-xs text-coral">faltan archivos</span>
+                    <span className="text-sm text-coral">faltan archivos</span>
                   )}
                 </div>
                 {c.docs.length > 0 ? (
@@ -145,7 +145,7 @@ export function RevisionFinal() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-text-faint pl-2">Sin archivos</p>
+                  <p className="text-sm text-text-faint pl-2">Sin archivos</p>
                 )}
               </div>
             ))}
@@ -165,20 +165,20 @@ export function RevisionFinal() {
           <div className="space-y-2">
             {camposContexto.slice(0, 4).map(campo => (
               <div key={campo.id} className="flex items-start gap-2">
-                <span className="text-xs text-text-faint min-w-0 w-36 shrink-0">{campo.label}</span>
-                <span className="text-xs text-text truncate">
+                <span className="text-sm text-text-faint min-w-0 w-36 shrink-0">{campo.label}</span>
+                <span className="text-sm text-text truncate">
                   {contextoEstudio[campo.id] || <span className="text-text-faint italic">—</span>}
                 </span>
               </div>
             ))}
             {camposContexto.length > 4 && (
-              <p className="text-xs text-text-faint">+{camposContexto.length - 4} campos más</p>
+              <p className="text-sm text-text-faint">+{camposContexto.length - 4} campos más</p>
             )}
           </div>
           {!contextoOk && (
             <button
               onClick={() => setPasoActivo(2)}
-              className="flex items-center gap-1.5 text-xs text-coral hover:text-coral/80 mt-3 transition-colors"
+              className="flex items-center gap-1.5 text-sm text-coral hover:text-coral/80 mt-3 transition-colors"
             >
               <AlertCircle className="w-3.5 h-3.5" />
               Completar contexto obligatorio (ir al paso 2)
@@ -209,7 +209,7 @@ export function RevisionFinal() {
           </div>
           <div className="flex flex-wrap gap-2">
             {configuracion.conectores.map(c => (
-              <span key={c} className="text-xs px-2.5 py-1 bg-purple/8 text-purple-light rounded-full border border-purple/15">
+              <span key={c} className="text-sm px-2.5 py-1 bg-purple/8 text-purple-light rounded-full border border-purple/15">
                 {LABELS_CONECTOR[c]}
               </span>
             ))}
@@ -229,7 +229,7 @@ export function RevisionFinal() {
 
 function EmptyState({ paso, label, onClick }: { paso: number; label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="text-xs text-coral hover:text-coral/80 flex items-center gap-1.5 transition-colors">
+    <button onClick={onClick} className="text-sm text-coral hover:text-coral/80 flex items-center gap-1.5 transition-colors">
       <AlertCircle className="w-3.5 h-3.5" />
       {label} (ir al paso {paso})
     </button>

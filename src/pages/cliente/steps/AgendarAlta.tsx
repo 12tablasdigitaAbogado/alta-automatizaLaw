@@ -98,7 +98,7 @@ export function AgendarAlta() {
             </ul>
           </div>
 
-          <p className="text-xs text-text-faint text-center">
+          <p className="text-sm text-text-dim text-center">
             ¿Necesitás cambiar el horario? Usá el link del email de Calendly para reprogramar.
           </p>
         </div>
@@ -109,7 +109,7 @@ export function AgendarAlta() {
             <PartyPopper className="w-6 h-6 text-teal shrink-0" />
             <div>
               <p className="text-sm font-semibold text-teal">¡Setup completo!</p>
-              <p className="text-xs text-text-dim mt-0.5">
+              <p className="text-sm text-text-dim mt-0.5">
                 Tu información está lista. Elegí un horario y nuestro operador se encarga de todo el día del alta.
               </p>
             </div>
