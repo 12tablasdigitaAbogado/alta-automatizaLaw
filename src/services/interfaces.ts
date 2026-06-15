@@ -2,6 +2,7 @@ import type {
   Estudio,
   Documento,
   ConfiguracionModulos,
+  ContextoEstudio,
   ProgresoRoadmap,
   Alta,
   Usuario,
@@ -11,7 +12,8 @@ import type {
 
 export interface EstudioService {
   getEstudio(estudioId: string): Promise<Estudio | null>
-  saveEstudio(estudioId: string, data: Partial<Estudio>): Promise<void>
+  /** Returns the effective estudio ID (new if created, same if updated) */
+  saveEstudio(estudioId: string, data: Partial<Estudio>): Promise<string>
 }
 
 export interface DocumentoService {
@@ -23,6 +25,11 @@ export interface DocumentoService {
 export interface ConfiguracionService {
   getConfiguracion(estudioId: string): Promise<ConfiguracionModulos>
   saveConfiguracion(estudioId: string, config: ConfiguracionModulos): Promise<void>
+}
+
+export interface ContextoService {
+  getContexto(estudioId: string): Promise<ContextoEstudio>
+  saveContexto(estudioId: string, contexto: ContextoEstudio): Promise<void>
 }
 
 export interface ChecklistService {
@@ -48,15 +55,15 @@ export interface UsuarioService {
 }
 
 // TODO Fase 2: interface del servicio de calendario (Calendly / Cal.com)
-export interface CalendarioService {
-  getSlots(fechaDesde: string, fechaHasta: string): Promise<SlotDisponible[]>
-  reservarSlot(slotId: string, estudioId: string): Promise<Alta>
-}
-
 export interface SlotDisponible {
   id: string
   fecha: string
   horaInicio: string
   horaFin: string
   disponible: boolean
+}
+
+export interface CalendarioService {
+  getSlots(fechaDesde: string, fechaHasta: string): Promise<SlotDisponible[]>
+  reservarSlot(slotId: string, estudioId: string): Promise<Alta>
 }

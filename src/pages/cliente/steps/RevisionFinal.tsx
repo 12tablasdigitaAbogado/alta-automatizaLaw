@@ -1,20 +1,34 @@
-import { CheckCircle2, AlertCircle, Building2, FolderOpen, Puzzle, ClipboardCheck } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Building2, FolderOpen, Puzzle, ClipboardCheck, BookOpen } from 'lucide-react'
 import { NavPasos } from '@/components/roadmap/NavPasos'
 import { useRoadmap } from '@/context/RoadmapContext'
-import { LABELS_CATEGORIA, LABELS_MODULO, LABELS_CONECTOR, cn } from '@/lib/utils'
-import type { CategoriaDocumento } from '@/types'
-
-const CATEGORIAS: CategoriaDocumento[] = ['cartas-documento', 'demandas', 'contratos', 'escritos-varios']
+import { SKILL_MAP, carpetasDeSkills, camposContextoDeSkills } from '@/data/skills'
+import { LABELS_CONECTOR, LABEL_CARPETA, cn } from '@/lib/utils'
 
 export function RevisionFinal() {
-  const { estudio, documentos, configuracion, checklist, progreso, setPasoActivo, completarPaso } = useRoadmap()
+  const { estudio, documentos, configuracion, contextoEstudio, checklist, progreso, setPasoActivo, completarPaso } = useRoadmap()
 
   const handleSiguiente = () => {
     completarPaso(6)
     setPasoActivo(7)
   }
 
-  const { identidadCompleta, tieneDocumentos, checklistCompleto, desbloqueado } = progreso ?? {}
+  const skillIds = configuracion.skillIds
+  const carpetas = carpetasDeSkills(skillIds)
+  const camposContexto = camposContextoDeSkills(skillIds)
+
+  // Gating items
+  const { identidadCompleta, checklistCompleto, desbloqueado } = progreso ?? {}
+
+  const modelosPorCarpeta = carpetas.map(c => ({
+    ...c,
+    docs: documentos.filter(d => d.carpeta === c.carpeta),
+    ok: documentos.filter(d => d.carpeta === c.carpeta).length >= c.minArchivos,
+  }))
+
+  const modelosOk = modelosPorCarpeta.filter(c => c.obligatorio).every(c => c.ok)
+
+  const contextoObligatorio = camposContexto.filter(c => c.obligatorio)
+  const contextoOk = contextoObligatorio.every(c => !!(contextoEstudio[c.id]?.trim()))
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -31,9 +45,7 @@ export function RevisionFinal() {
       {/* Estado del gating */}
       <div className={cn(
         'rounded-2xl p-5 mb-6 border',
-        desbloqueado
-          ? 'bg-teal/5 border-teal/25'
-          : 'bg-bg-card border-border'
+        desbloqueado ? 'bg-teal/5 border-teal/25' : 'bg-bg-card border-border'
       )}>
         <p className={cn('text-sm font-semibold mb-3', desbloqueado ? 'text-teal' : 'text-text')}>
           {desbloqueado ? '¡Listo para agendar!' : 'Aún faltan requisitos obligatorios'}
@@ -41,7 +53,8 @@ export function RevisionFinal() {
         <div className="space-y-2">
           {[
             { ok: identidadCompleta, label: 'Identidad del estudio completa' },
-            { ok: tieneDocumentos, label: 'Al menos un modelo cargado' },
+            { ok: modelosOk, label: 'Modelos obligatorios cargados' },
+            { ok: contextoOk || camposContexto.filter(c => c.obligatorio).length === 0, label: 'Contexto laboral completo' },
             { ok: checklistCompleto, label: 'Checklist técnico completado' },
           ].map(({ ok, label }) => (
             <div key={label} className="flex items-center gap-2.5">
@@ -56,7 +69,7 @@ export function RevisionFinal() {
         </div>
       </div>
 
-      {/* Resumen: Identidad */}
+      {/* Identidad */}
       <div className="bg-bg-card border border-border rounded-2xl p-5 mb-4">
         <div className="flex items-center gap-2 mb-4">
           <Building2 className="w-4 h-4 text-text-dim" />
@@ -64,16 +77,14 @@ export function RevisionFinal() {
         </div>
         {estudio.denominacion ? (
           <div className="grid grid-cols-2 gap-3 text-sm">
-            {[
+            {([
               ['Denominación', estudio.denominacion],
               ['Abogado/a', estudio.abogadoResponsable],
               ['Matrícula', estudio.matricula],
               ['Domicilio', estudio.domicilio],
               ['Teléfono', estudio.telefono],
               ['Email', estudio.email],
-              ['Jurisdicción', estudio.jurisdiccion],
-              ['Fuero', estudio.fueroPrincipal],
-            ].map(([k, v]) => (
+            ] as [string, string | undefined][]).map(([k, v]) => (
               <div key={k}>
                 <p className="text-xs text-text-faint mb-0.5">{k}</p>
                 <p className="text-text truncate">{v || '—'}</p>
@@ -85,60 +96,98 @@ export function RevisionFinal() {
         )}
       </div>
 
-      {/* Resumen: Modelos */}
+      {/* Skills y modelos */}
+      <div className="bg-bg-card border border-border rounded-2xl p-5 mb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Puzzle className="w-4 h-4 text-text-dim" />
+          <h2 className="text-sm font-semibold text-text">Skills activadas</h2>
+        </div>
+        {skillIds.length === 0 ? (
+          <EmptyState paso={3} label="Seleccioná las skills del estudio" onClick={() => setPasoActivo(3)} />
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {skillIds.map(id => (
+              <span key={id} className="text-xs px-2.5 py-1 bg-teal/8 text-teal rounded-full border border-teal/15">
+                {SKILL_MAP[id]?.nombre ?? id}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modelos cargados */}
       <div className="bg-bg-card border border-border rounded-2xl p-5 mb-4">
         <div className="flex items-center gap-2 mb-4">
           <FolderOpen className="w-4 h-4 text-text-dim" />
           <h2 className="text-sm font-semibold text-text">Modelos cargados</h2>
           <span className="ml-auto text-xs text-text-dim">{documentos.length} archivo{documentos.length !== 1 ? 's' : ''}</span>
         </div>
-        {documentos.length > 0 ? (
-          <div className="space-y-2">
-            {CATEGORIAS.filter(c => documentos.some(d => d.categoria === c)).map(cat => (
-              <div key={cat}>
-                <p className="text-xs text-text-faint mb-1">{LABELS_CATEGORIA[cat]}</p>
-                <div className="space-y-1">
-                  {documentos.filter(d => d.categoria === cat).map(doc => (
-                    <div key={doc.id} className="text-sm text-text-dim flex items-center gap-2">
-                      <span className="text-teal/50">·</span> {doc.nombre}
-                    </div>
-                  ))}
+        {carpetas.length === 0 ? (
+          <p className="text-xs text-text-faint">No hay skills seleccionadas.</p>
+        ) : modelosPorCarpeta.some(c => c.docs.length > 0) ? (
+          <div className="space-y-3">
+            {modelosPorCarpeta.map(c => (
+              <div key={c.carpeta}>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-xs text-text-dim font-medium">
+                    {LABEL_CARPETA[c.carpeta] ?? c.carpeta}
+                  </p>
+                  {c.obligatorio && !c.ok && (
+                    <span className="text-xs text-coral">faltan archivos</span>
+                  )}
                 </div>
+                {c.docs.length > 0 ? (
+                  <div className="space-y-1 pl-2">
+                    {c.docs.map(doc => (
+                      <div key={doc.id} className="text-sm text-text-dim flex items-center gap-2">
+                        <span className="text-teal/50">·</span> {doc.nombre}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-text-faint pl-2">Sin archivos</p>
+                )}
               </div>
             ))}
           </div>
         ) : (
-          <EmptyState paso={3} label="Subí al menos un modelo" onClick={() => setPasoActivo(3)} />
+          <EmptyState paso={4} label="Subí al menos un modelo obligatorio" onClick={() => setPasoActivo(4)} />
         )}
       </div>
 
-      {/* Resumen: Módulos */}
-      <div className="bg-bg-card border border-border rounded-2xl p-5 mb-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Puzzle className="w-4 h-4 text-text-dim" />
-          <h2 className="text-sm font-semibold text-text">Módulos y conectores</h2>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {configuracion.modulos.length === 0 && configuracion.conectores.length === 0 ? (
-            <p className="text-xs text-text-faint">Ninguno seleccionado (opcional)</p>
-          ) : (
-            <>
-              {configuracion.modulos.map(m => (
-                <span key={m} className="text-xs px-2.5 py-1 bg-teal/8 text-teal rounded-full border border-teal/15">
-                  {LABELS_MODULO[m]}
+      {/* Contexto laboral */}
+      {camposContexto.length > 0 && (
+        <div className="bg-bg-card border border-border rounded-2xl p-5 mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-4 h-4 text-text-dim" />
+            <h2 className="text-sm font-semibold text-text">Contexto laboral</h2>
+          </div>
+          <div className="space-y-2">
+            {camposContexto.slice(0, 4).map(campo => (
+              <div key={campo.id} className="flex items-start gap-2">
+                <span className="text-xs text-text-faint min-w-0 w-36 shrink-0">{campo.label}</span>
+                <span className="text-xs text-text truncate">
+                  {contextoEstudio[campo.id] || <span className="text-text-faint italic">—</span>}
                 </span>
-              ))}
-              {configuracion.conectores.map(c => (
-                <span key={c} className="text-xs px-2.5 py-1 bg-purple/8 text-purple-light rounded-full border border-purple/15">
-                  {LABELS_CONECTOR[c]}
-                </span>
-              ))}
-            </>
+              </div>
+            ))}
+            {camposContexto.length > 4 && (
+              <p className="text-xs text-text-faint">+{camposContexto.length - 4} campos más</p>
+            )}
+          </div>
+          {!contextoOk && (
+            <button
+              onClick={() => setPasoActivo(2)}
+              className="flex items-center gap-1.5 text-xs text-coral hover:text-coral/80 mt-3 transition-colors"
+            >
+              <AlertCircle className="w-3.5 h-3.5" />
+              Completar contexto obligatorio (ir al paso 2)
+            </button>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Resumen: Checklist */}
+      {/* Checklist */}
       <div className="bg-bg-card border border-border rounded-2xl p-5 mb-2">
         <div className="flex items-center gap-2 mb-4">
           <ClipboardCheck className="w-4 h-4 text-text-dim" />
@@ -150,6 +199,23 @@ export function RevisionFinal() {
           <EmptyState paso={5} label="Completá el checklist técnico" onClick={() => setPasoActivo(5)} />
         )}
       </div>
+
+      {/* Conectores */}
+      {configuracion.conectores.length > 0 && (
+        <div className="bg-bg-card border border-border rounded-2xl p-5 mb-2">
+          <div className="flex items-center gap-2 mb-3">
+            <Puzzle className="w-4 h-4 text-text-dim" />
+            <h2 className="text-sm font-semibold text-text">Conectores</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {configuracion.conectores.map(c => (
+              <span key={c} className="text-xs px-2.5 py-1 bg-purple/8 text-purple-light rounded-full border border-purple/15">
+                {LABELS_CONECTOR[c]}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <NavPasos
         paso={6}

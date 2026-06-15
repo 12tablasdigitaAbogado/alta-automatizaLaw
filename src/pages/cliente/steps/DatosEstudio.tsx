@@ -14,16 +14,14 @@ interface Campo {
   ayuda?: string
 }
 
-const CAMPOS: Campo[] = [
+const CAMPOS_IDENTIDAD: Campo[] = [
   { key: 'denominacion', label: 'Denominación del estudio', placeholder: 'García & Asociados', requerido: true },
   { key: 'abogadoResponsable', label: 'Abogado/a responsable', placeholder: 'Dra. María García', requerido: true },
-  { key: 'matricula', label: 'Matrícula (tomo/folio/colegio)', placeholder: 'Tomo 42, Folio 187 — CPACF', requerido: true, ayuda: 'Ej: Tomo 42, Folio 187 — CPACF' },
+  { key: 'matricula', label: 'Matrícula (tomo/folio/colegio)', placeholder: 'Tomo 42, Folio 187 — CPACF', requerido: true },
   { key: 'domicilio', label: 'Domicilio legal', placeholder: 'Av. Corrientes 1234, Piso 5 Of. B, CABA', requerido: true },
   { key: 'telefono', label: 'Teléfono', placeholder: '+54 11 4321-5678', requerido: true },
   { key: 'email', label: 'Email del estudio', placeholder: 'contacto@estudio.com', requerido: true },
-  { key: 'jurisdiccion', label: 'Jurisdicción principal', placeholder: 'Ciudad Autónoma de Buenos Aires', requerido: true },
-  { key: 'fueroPrincipal', label: 'Fuero principal', placeholder: 'Civil y Comercial', requerido: true, ayuda: 'Ej: Civil y Comercial, Laboral, Penal, Contencioso Administrativo' },
-  { key: 'estiloRedaccion', label: 'Estilo de redacción', placeholder: 'Formal, técnico. Evitar coloquialismos. Primera persona del plural.', requerido: false, tipo: 'textarea', ayuda: 'Indicá el tono y estilo que el asistente debe usar en los escritos.' },
+  { key: 'estiloRedaccion', label: 'Estilo de redacción', placeholder: 'Formal, técnico. Primera persona del plural.', requerido: false, tipo: 'textarea', ayuda: 'Tono y estilo que el asistente debe usar en los documentos.' },
   { key: 'pieFirma', label: 'Pie de firma', placeholder: 'Dra. María García\nAbogada — CPACF T° 42 F° 187', requerido: false, tipo: 'textarea', ayuda: 'Texto que aparecerá al pie de cada documento generado.' },
 ]
 
@@ -32,11 +30,9 @@ export function DatosEstudio() {
   const [form, setForm] = useState<Partial<Estudio>>({})
   const [guardado, setGuardado] = useState(false)
 
-  useEffect(() => {
-    setForm(estudio)
-  }, [estudio])
+  useEffect(() => { setForm(estudio) }, [estudio])
 
-  const camposRequeridos = CAMPOS.filter(c => c.requerido)
+  const camposRequeridos = CAMPOS_IDENTIDAD.filter(c => c.requerido)
   const completo = camposRequeridos.every(c => !!(form[c.key] as string)?.trim())
 
   const handleChange = (key: keyof Estudio, value: string) => {
@@ -57,21 +53,21 @@ export function DatosEstudio() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="flex items-center gap-3 mb-8">
+      {/* Identidad */}
+      <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-teal/10 border border-teal/25 flex items-center justify-center">
           <Building2 className="w-5 h-5 text-teal" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-text">Datos del estudio</h1>
-          <p className="text-sm text-text-dim">Esta información es la identidad que el asistente usará en cada documento.</p>
+          <h1 className="text-xl font-bold text-text">Identidad del estudio</h1>
+          <p className="text-sm text-text-dim">Esta información aparecerá en todos los documentos generados.</p>
         </div>
       </div>
 
-      <div className="space-y-4">
-        {CAMPOS.map(({ key, label, placeholder, requerido, tipo, ayuda }) => {
+      <div className="space-y-4 mb-8">
+        {CAMPOS_IDENTIDAD.map(({ key, label, placeholder, requerido, tipo, ayuda }) => {
           const valor = (form[key] as string) ?? ''
           const esTextarea = tipo === 'textarea'
-          const vacio = requerido && !valor.trim()
 
           return (
             <div key={key}>
@@ -86,10 +82,7 @@ export function DatosEstudio() {
                   onChange={e => handleChange(key, e.target.value)}
                   placeholder={placeholder}
                   rows={3}
-                  className={cn(
-                    'w-full bg-bg-3 border rounded-lg px-3.5 py-2.5 text-sm text-text placeholder:text-text-faint resize-none transition-colors outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20',
-                    vacio ? 'border-border' : 'border-border'
-                  )}
+                  className="w-full bg-bg-3 border border-border rounded-lg px-3.5 py-2.5 text-sm text-text placeholder:text-text-faint resize-none outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20 transition-colors"
                 />
               ) : (
                 <input
@@ -97,7 +90,7 @@ export function DatosEstudio() {
                   value={valor}
                   onChange={e => handleChange(key, e.target.value)}
                   placeholder={placeholder}
-                  className="w-full bg-bg-3 border border-border rounded-lg px-3.5 py-2.5 text-sm text-text placeholder:text-text-faint transition-colors outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20"
+                  className="w-full bg-bg-3 border border-border rounded-lg px-3.5 py-2.5 text-sm text-text placeholder:text-text-faint outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20 transition-colors"
                 />
               )}
             </div>
@@ -106,7 +99,7 @@ export function DatosEstudio() {
       </div>
 
       {/* Guardar parcial */}
-      <div className="mt-6 flex justify-end">
+      <div className="flex justify-end mb-2">
         <button
           onClick={handleGuardar}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-text-dim border border-border hover:bg-bg-3 hover:text-text transition-colors"
@@ -117,7 +110,7 @@ export function DatosEstudio() {
       </div>
 
       {!completo && (
-        <p className="text-xs text-text-faint text-center mt-4">
+        <p className="text-xs text-text-faint text-center mt-2">
           Completá los campos obligatorios (<span className="text-teal">*</span>) para continuar.
         </p>
       )}

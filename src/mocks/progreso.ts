@@ -26,15 +26,15 @@ export const MOCK_CHECKLIST: Record<string, ChecklistTecnico> = {
 
 export const MOCK_CONFIGURACION: Record<string, ConfiguracionModulos> = {
   'estudio-001': {
-    modulos: ['redaccion-escritos', 'cartas-documento', 'respuesta-telegramas'],
+    skillIds: ['telegrama-cd', 'demanda-laboral', 'respuesta-telegrama'],
     conectores: ['google-drive', 'google-calendar', 'gmail'],
   },
   'estudio-002': {
-    modulos: [],
+    skillIds: [],
     conectores: [],
   },
   'estudio-003': {
-    modulos: ['redaccion-escritos', 'analisis-contratos', 'consulta-jurisprudencia'],
+    skillIds: ['alta-caso', 'liquidacion', 'demanda-laboral'],
     conectores: ['google-drive'],
   },
 }

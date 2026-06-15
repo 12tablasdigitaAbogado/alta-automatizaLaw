@@ -1,47 +1,49 @@
 import { useState, useEffect } from 'react'
-import { Puzzle, AlertCircle } from 'lucide-react'
+import { Puzzle } from 'lucide-react'
 import { NavPasos } from '@/components/roadmap/NavPasos'
 import { useRoadmap } from '@/context/RoadmapContext'
-import type { ModuloId, ConectorId } from '@/types'
-import { LABELS_MODULO, LABELS_CONECTOR, cn } from '@/lib/utils'
-
-// TODO: reemplazar con la lista real de módulos disponibles cuando esté definida con el equipo
-const MODULOS_DISPONIBLES: { id: ModuloId; desc: string }[] = [
-  { id: 'redaccion-escritos', desc: 'Generá escritos judiciales desde cero o basándote en tus modelos.' },
-  { id: 'cartas-documento', desc: 'Redactá cartas documento e intimaciones con los datos del caso.' },
-  { id: 'respuesta-telegramas', desc: 'Respondé telegramas laborales con la respuesta adecuada.' },
-  { id: 'analisis-contratos', desc: 'Analizá contratos, identificá cláusulas problemáticas y riesgos.' },
-  { id: 'consulta-jurisprudencia', desc: 'Consultá fallos y doctrina relevante por tema.' },
-  { id: 'liquidacion-honorarios', desc: 'Calculá y generá liquidaciones de honorarios profesionales.' },
-]
+import type { ConectorId, SkillId } from '@/types'
+import type { CampoContexto } from '@/data/skills'
+import { SKILLS } from '@/data/skills'
+import { LABELS_CONECTOR, cn } from '@/lib/utils'
 
 const CONECTORES_DISPONIBLES: { id: ConectorId; desc: string; icono: string }[] = [
   { id: 'google-drive', desc: 'Leé y guardá documentos directamente en tu Drive.', icono: '📁' },
   { id: 'google-calendar', desc: 'Agendá vencimientos y audiencias automáticamente.', icono: '📅' },
-  { id: 'gmail', desc: 'Accedé y respondé emails desde el asistente.', icono: '✉️' },
 ]
 
 export function ModulosConectores() {
-  const { configuracion, saveConfiguracion, setPasoActivo, completarPaso } = useRoadmap()
-  const [modulos, setModulos] = useState<ModuloId[]>([])
+  const { configuracion, contextoEstudio, saveConfiguracion, saveContextoEstudio, setPasoActivo, completarPaso } = useRoadmap()
+  const [skillIds, setSkillIds] = useState<SkillId[]>([])
   const [conectores, setConectores] = useState<ConectorId[]>([])
+  const [contexto, setContexto] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    setModulos(configuracion.modulos)
+    setSkillIds(configuracion.skillIds)
     setConectores(configuracion.conectores)
-  }, [configuracion])
+    setContexto(contextoEstudio)
+  }, [configuracion, contextoEstudio])
 
-  const toggleModulo = (id: ModuloId) =>
-    setModulos(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id])
+  const toggleSkill = (id: SkillId) =>
+    setSkillIds(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
 
   const toggleConector = (id: ConectorId) =>
     setConectores(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id])
 
+  const handleContexto = (id: string, value: string) =>
+    setContexto(prev => ({ ...prev, [id]: value }))
+
   const handleSiguiente = async () => {
-    await saveConfiguracion({ modulos, conectores })
-    completarPaso(4)
-    setPasoActivo(5)
+    await Promise.all([
+      saveConfiguracion({ skillIds, conectores }),
+      saveContextoEstudio(contexto),
+    ])
+    completarPaso(3)
+    setPasoActivo(4)
   }
+
+  // Track which context field IDs have already been rendered (dedup across skills)
+  const camposRendered = new Set<string>()
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -50,49 +52,108 @@ export function ModulosConectores() {
           <Puzzle className="w-5 h-5 text-teal" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-text">Módulos y conectores</h1>
-          <p className="text-sm text-text-dim">Seleccioná qué capacidades querés activar. Podés cambiar esto después.</p>
+          <h1 className="text-xl font-bold text-text">Skills y conectores</h1>
+          <p className="text-sm text-text-dim">
+            Seleccioná las skills que querés activar. Al tildar cada una, aparecen sus campos de contexto.
+          </p>
         </div>
       </div>
 
-      {/* Aviso TODO */}
-      <div className="flex items-start gap-2.5 bg-warning/5 border border-warning/15 rounded-xl px-4 py-3 mb-6">
-        <AlertCircle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-        <p className="text-xs text-warning/80">
-          Esta lista es preliminar. Los módulos disponibles se definirán con el equipo antes del lanzamiento.
-        </p>
-      </div>
-
-      {/* Módulos */}
+      {/* Skills */}
       <div className="mb-6">
-        <h2 className="text-sm font-semibold text-text mb-3">Skills jurídicas</h2>
-        <div className="space-y-2">
-          {MODULOS_DISPONIBLES.map(({ id, desc }) => {
-            const seleccionado = modulos.includes(id)
+        <h2 className="text-sm font-semibold text-text mb-3">Skills jurídicas laborales</h2>
+        <div className="space-y-3">
+          {SKILLS.map(skill => {
+            const seleccionado = skillIds.includes(skill.id)
+
+            // Campos de esta skill que aún no se mostraron en una skill anterior
+            const camposNuevos: CampoContexto[] = []
+            if (seleccionado) {
+              for (const campo of skill.contexto) {
+                if (!camposRendered.has(campo.id)) {
+                  camposRendered.add(campo.id)
+                  camposNuevos.push(campo)
+                }
+              }
+            }
+
             return (
-              <button
-                key={id}
-                onClick={() => toggleModulo(id)}
+              <div
+                key={skill.id}
                 className={cn(
-                  'w-full flex items-start gap-3 p-4 rounded-xl border text-left transition-all',
-                  seleccionado
-                    ? 'bg-teal/6 border-teal/30'
-                    : 'bg-bg-card border-border hover:border-border-soft hover:bg-bg-3'
+                  'rounded-xl border transition-all',
+                  seleccionado ? 'bg-teal/6 border-teal/30' : 'bg-bg-card border-border'
                 )}
               >
-                <div className={cn(
-                  'w-4 h-4 rounded border-2 mt-0.5 shrink-0 flex items-center justify-center transition-all',
-                  seleccionado ? 'bg-teal border-teal' : 'border-text-faint'
-                )}>
-                  {seleccionado && <span className="text-bg text-xs font-bold leading-none">✓</span>}
-                </div>
-                <div>
-                  <p className={cn('text-sm font-medium', seleccionado ? 'text-teal' : 'text-text')}>
-                    {LABELS_MODULO[id]}
-                  </p>
-                  <p className="text-xs text-text-dim mt-0.5">{desc}</p>
-                </div>
-              </button>
+                {/* Header — clickeable */}
+                <button
+                  type="button"
+                  onClick={() => toggleSkill(skill.id)}
+                  className="w-full flex items-start gap-3 p-4 text-left"
+                >
+                  <div className={cn(
+                    'w-4 h-4 rounded border-2 mt-0.5 shrink-0 flex items-center justify-center transition-all',
+                    seleccionado ? 'bg-teal border-teal' : 'border-text-faint'
+                  )}>
+                    {seleccionado && <span className="text-bg text-xs font-bold leading-none">✓</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn('text-sm font-medium', seleccionado ? 'text-teal' : 'text-text')}>
+                      {skill.nombre}
+                    </p>
+                    <p className="text-xs text-text-dim mt-0.5">{skill.descripcion}</p>
+                    {seleccionado && (
+                      <p className="text-xs text-teal/60 mt-1">
+                        Requiere: {skill.modelos.map(m => m.carpeta).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                </button>
+
+                {/* Campos de contexto — solo cuando está seleccionada y tiene campos nuevos */}
+                {seleccionado && camposNuevos.length > 0 && (
+                  <div className="px-4 pb-4 pt-0 border-t border-teal/15 space-y-3">
+                    <p className="text-xs text-teal/70 font-medium pt-3">Contexto para esta skill</p>
+                    {camposNuevos.map(campo => (
+                      <div key={campo.id}>
+                        <label className="block text-xs font-medium text-text mb-1">
+                          {campo.label}
+                          {campo.obligatorio && <span className="text-teal ml-1">*</span>}
+                        </label>
+                        {campo.ayuda && (
+                          <p className="text-xs text-text-faint mb-1.5">{campo.ayuda}</p>
+                        )}
+                        {campo.tipo === 'textarea' ? (
+                          <textarea
+                            value={contexto[campo.id] ?? ''}
+                            onChange={e => handleContexto(campo.id, e.target.value)}
+                            rows={2}
+                            className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-xs text-text placeholder:text-text-faint resize-none outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20 transition-colors"
+                          />
+                        ) : campo.tipo === 'select' && campo.opciones ? (
+                          <select
+                            value={contexto[campo.id] ?? ''}
+                            onChange={e => handleContexto(campo.id, e.target.value)}
+                            className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-xs text-text outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20 transition-colors"
+                          >
+                            <option value="">Seleccioná una opción</option>
+                            {campo.opciones.map(op => (
+                              <option key={op} value={op}>{op}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={contexto[campo.id] ?? ''}
+                            onChange={e => handleContexto(campo.id, e.target.value)}
+                            className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-xs text-text placeholder:text-text-faint outline-none focus:border-teal/50 focus:ring-1 focus:ring-teal/20 transition-colors"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
@@ -138,8 +199,8 @@ export function ModulosConectores() {
       </div>
 
       <NavPasos
-        paso={4}
-        onAnterior={() => setPasoActivo(3)}
+        paso={3}
+        onAnterior={() => setPasoActivo(2)}
         onSiguiente={handleSiguiente}
         labelSiguiente="Continuar"
       />

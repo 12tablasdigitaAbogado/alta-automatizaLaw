@@ -19,43 +19,33 @@ export interface Estudio {
   domicilio: string
   telefono: string
   email: string
-  jurisdiccion: string
-  fueroPrincipal: string
   estiloRedaccion: string
   pieFirma: string
 }
 
-export type CategoriaDocumento =
-  | 'cartas-documento'
-  | 'demandas'
-  | 'contratos'
-  | 'escritos-varios'
+export type ContextoEstudio = Record<string, string>
 
 export interface Documento {
   id: string
   estudioId: string
-  categoria: CategoriaDocumento
+  carpeta: string        // slug de subcarpeta Drive: 'intake', 'telegramas', 'liquidaciones', 'demandas'
   nombre: string
   tamano: number
   fecha: string
-  // En Fase 1 el archivo vive solo en memoria (File object no serializable)
-  // TODO Fase 2: subir a Supabase Storage y guardar la URL
   archivoLocal?: File
 }
 
-// TODO Fase 2: definir la lista real de módulos disponibles con el equipo
-export type ModuloId =
-  | 'redaccion-escritos'
-  | 'cartas-documento'
-  | 'respuesta-telegramas'
-  | 'analisis-contratos'
-  | 'consulta-jurisprudencia'
-  | 'liquidacion-honorarios'
+export type SkillId =
+  | 'alta-caso'
+  | 'telegrama-cd'
+  | 'liquidacion'
+  | 'demanda-laboral'
+  | 'respuesta-telegrama'
 
 export type ConectorId = 'google-drive' | 'google-calendar' | 'gmail'
 
 export interface ConfiguracionModulos {
-  modulos: ModuloId[]
+  skillIds: SkillId[]
   conectores: ConectorId[]
 }
 
@@ -65,17 +55,13 @@ export interface ProgresoRoadmap {
   usuarioId: string
   pasos: Record<number, EstadoPaso>
   porcentaje: number
-  // Gating: los tres requisitos para desbloquear el paso 7
   identidadCompleta: boolean
   tieneDocumentos: boolean
   checklistCompleto: boolean
   desbloqueado: boolean
 }
 
-export type EstadoAlta =
-  | 'pendiente'
-  | 'agendada'
-  | 'realizada'
+export type EstadoAlta = 'pendiente' | 'agendada' | 'realizada'
 
 export interface Alta {
   id: string
@@ -88,7 +74,6 @@ export interface Alta {
   notas?: string
 }
 
-// Estado del checklist técnico (paso 5)
 export interface ChecklistTecnico {
   claudeDesktopInstalado: boolean
   planClaudeActivo: boolean
@@ -97,17 +82,18 @@ export interface ChecklistTecnico {
   disponibleParaReunion: boolean
 }
 
-// Checklist del runbook de alta (solo admin)
 export interface RunbookItem {
   id: string
   label: string
   completado: boolean
 }
 
-// Cliente enriquecido para la lista del admin
 export interface ClienteResumen {
   usuario: Usuario
   estudio: Estudio
+  configuracion: ConfiguracionModulos
+  contexto: ContextoEstudio
+  documentos: Documento[]
   progreso: ProgresoRoadmap
   alta: Alta
 }

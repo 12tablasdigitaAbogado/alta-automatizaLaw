@@ -17,22 +17,6 @@ export function formatFecha(iso: string): string {
   return `${d}/${m}/${y}`
 }
 
-export const LABELS_CATEGORIA = {
-  'cartas-documento': 'Cartas documento / Telegramas',
-  'demandas': 'Demandas',
-  'contratos': 'Contratos',
-  'escritos-varios': 'Escritos varios',
-} as const
-
-export const LABELS_MODULO = {
-  'redaccion-escritos': 'Redacción de escritos judiciales',
-  'cartas-documento': 'Cartas documento y telegramas',
-  'respuesta-telegramas': 'Respuesta a telegramas',
-  'analisis-contratos': 'Análisis de contratos',
-  'consulta-jurisprudencia': 'Consulta de jurisprudencia',
-  'liquidacion-honorarios': 'Liquidación de honorarios',
-} as const
-
 export const LABELS_CONECTOR = {
   'google-drive': 'Google Drive',
   'google-calendar': 'Google Calendar',
@@ -44,3 +28,10 @@ export const LABELS_ESTADO_ALTA = {
   'agendada': 'Alta agendada',
   'realizada': 'Alta realizada',
 } as const
+
+export const LABEL_CARPETA: Record<string, string> = {
+  intake: 'Apertura de caso',
+  telegramas: 'Telegramas y cartas documento',
+  liquidaciones: 'Liquidaciones',
+  demandas: 'Demandas',
+}
