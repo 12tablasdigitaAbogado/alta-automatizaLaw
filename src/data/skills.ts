@@ -1,9 +1,17 @@
 export type SkillId =
-  | 'alta-caso'
   | 'telegrama-cd'
-  | 'liquidacion'
   | 'demanda-laboral'
-  | 'respuesta-telegrama'
+  | 'escritos-tramite'
+  | 'liquidacion-rubros'
+  | 'analisis-contestacion'
+  | 'preparacion-testimonial'
+  | 'impugnacion-pericial'
+  | 'alegato'
+  | 'triage-consultas'
+  | 'jurisdiccion-competencia'
+  | 'respuesta-clientes'
+  | 'investigacion-juridica'
+  | 'contrato-honorarios'
 
 export interface ModeloRequerido {
   carpeta: string
@@ -11,6 +19,8 @@ export interface ModeloRequerido {
   ejemplo: string
   obligatorio: boolean
   minArchivos: number
+  // TODO: cargar archivos modelo por defecto en Supabase Storage (bucket público) y poner las URLs acá
+  modeloDefault?: string
 }
 
 export interface CampoContexto {
@@ -26,204 +36,222 @@ export interface Skill {
   id: SkillId
   nombre: string
   descripcion: string
+  bloque: string
   modelos: ModeloRequerido[]
   contexto: CampoContexto[]
 }
 
-export const SKILLS: Skill[] = [
-  {
-    id: 'alta-caso',
-    nombre: 'Alta de caso laboral',
-    descripcion: 'Redacta el encuadre inicial, convenio de honorarios y autorización del cliente.',
-    modelos: [
-      {
-        carpeta: 'intake',
-        label: 'Documentos de apertura de caso',
-        ejemplo: 'Convenio de cuota litis, poder/autorización del cliente, ficha de consulta inicial.',
-        obligatorio: true,
-        minArchivos: 1,
-      },
-    ],
-    contexto: [
-      {
-        id: 'cuota_litis_pct',
-        label: '% habitual de cuota litis',
-        tipo: 'text',
-        obligatorio: true,
-        ayuda: 'Ej: 20% del monto obtenido en juicio.',
-      },
-      {
-        id: 'datos_consulta',
-        label: 'Datos que relevás en la consulta inicial',
-        tipo: 'textarea',
-        obligatorio: false,
-        ayuda: 'Campos o preguntas estándar que hacés al cliente en la primera entrevista.',
-      },
-    ],
-  },
+// ─── Bloque 1 · Redacción ─────────────────────────────────────────────────────
+
+const bloque1: Skill[] = [
   {
     id: 'telegrama-cd',
-    nombre: 'Telegrama / carta documento laboral',
-    descripcion: 'Redacta intimaciones laborales, autodespidos y comunicaciones formales al empleador.',
+    nombre: 'Telegrama / Carta Documento',
+    descripcion: 'Redacta todas las intimaciones laborales: registración, sub-registración, hostigamiento, diferencias, art. 80, despido indirecto y réplicas.',
+    bloque: 'Redacción',
     modelos: [
       {
         carpeta: 'telegramas',
         label: 'Modelos de telegramas y cartas documento',
-        ejemplo: 'Intimación art. 11 ley 24.013, intimación pago de haberes, autodespido art. 246, rechazo de telegramas del empleador.',
+        ejemplo: 'Intimación registración, CD despido indirecto, réplica a telegrama del empleador, art. 80 LCT.',
         obligatorio: true,
         minArchivos: 1,
       },
     ],
-    contexto: [
-      {
-        id: 'formulas_telegrama',
-        label: 'Fórmulas habituales del estudio',
-        tipo: 'textarea',
-        obligatorio: false,
-        ayuda: 'Frases o cláusulas de estilo que usás en tus telegramas.',
-      },
-      {
-        id: 'plazo_intimacion',
-        label: 'Plazo de intimación estándar',
-        tipo: 'text',
-        obligatorio: false,
-        ayuda: 'Ej: 48 horas para telegramas Correo Argentino, 2 días hábiles.',
-      },
-      {
-        id: 'formato_envio',
-        label: 'Formato de envío',
-        tipo: 'select',
-        opciones: ['Correo Argentino (ley 23.789)', 'Carta documento', 'Ambos'],
-        obligatorio: false,
-        ayuda: 'Medio habitual de envío de comunicaciones formales.',
-      },
-    ],
-  },
-  {
-    id: 'liquidacion',
-    nombre: 'Liquidación indemnizatoria',
-    descripcion: 'Calcula y redacta liquidaciones finales, rubros indemnizatorios y planillas de despido.',
-    modelos: [
-      {
-        carpeta: 'liquidaciones',
-        label: 'Planillas de cálculo y modelos de liquidación',
-        ejemplo: 'Planilla de liquidación final, tabla de multas ley 24.013/25.323, modelo de liquidación art. 245.',
-        obligatorio: true,
-        minArchivos: 1,
-      },
-    ],
-    contexto: [
-      {
-        id: 'rubros_liquidacion',
-        label: 'Rubros que liquidás habitualmente',
-        tipo: 'textarea',
-        obligatorio: true,
-        ayuda: 'Ej: indemnización art. 245, preaviso, integración mes, vacaciones proporcionales, SAC proporcional.',
-      },
-      {
-        id: 'multas_aplicables',
-        label: 'Multas que aplicás',
-        tipo: 'textarea',
-        obligatorio: false,
-        ayuda: 'Ej: art. 8, 9, 10 ley 24.013; art. 1 y 2 ley 25.323; art. 80 LCT.',
-      },
-      {
-        id: 'tope_vizzoti',
-        label: 'Criterio para tope art. 245 (Vizzoti)',
-        tipo: 'text',
-        obligatorio: false,
-        ayuda: 'Ej: aplicar 67% del salario real cuando supera el tope RIPTE.',
-      },
-      {
-        id: 'tasa_interes',
-        label: 'Tasa de interés aplicable',
-        tipo: 'text',
-        obligatorio: true,
-        ayuda: 'Ej: tasa activa BNA, acta CNAT 2601 o 2764 según jurisdicción.',
-      },
-    ],
+    contexto: [],
   },
   {
     id: 'demanda-laboral',
-    nombre: 'Demanda laboral',
-    descripcion: 'Redacta escritos de demanda, ofrecimiento de prueba y recursos judiciales.',
+    nombre: 'Demanda Laboral',
+    descripcion: 'Genera el escrito de inicio en sus 4 variantes, con la liquidación completa donde la jurisdicción lo exige.',
+    bloque: 'Redacción',
     modelos: [
       {
         carpeta: 'demandas',
-        label: 'Modelos de demanda',
-        ejemplo: 'Demanda por despido incausado, demanda por diferencias salariales, demanda accidente/ART ley 27.348, ofrecimiento de prueba.',
+        label: 'Demandas reales por tipo de caso',
+        ejemplo: 'Demanda por despido incausado, diferencias salariales, accidente de trabajo, ofrecimiento de prueba.',
         obligatorio: true,
         minArchivos: 1,
       },
     ],
-    contexto: [
-      {
-        id: 'fuero_procedimiento',
-        label: 'Fuero, jurisdicción y procedimiento',
-        tipo: 'text',
-        obligatorio: true,
-        ayuda: 'Ej: Fuero Laboral CABA — CNAT — procedimiento oral ley 18.345.',
-      },
-      {
-        id: 'tribunal',
-        label: 'Tribunal habitual',
-        tipo: 'text',
-        obligatorio: false,
-        ayuda: 'Ej: CNAT Sala I, Juzgado Nacional de 1ª Instancia del Trabajo nº 42.',
-      },
-      {
-        id: 'estilo_demanda',
-        label: 'Estilo de redacción para demandas',
-        tipo: 'textarea',
-        obligatorio: false,
-        ayuda: 'Tono, estructura y particularidades de estilo que usás en los escritos.',
-      },
-      {
-        id: 'fallos_cabecera',
-        label: 'Fallos de cabecera / doctrina que citás',
-        tipo: 'textarea',
-        obligatorio: false,
-        ayuda: 'Fallos o doctrina que citás habitualmente (CSJN, CNAT, salas preferidas).',
-      },
-    ],
+    contexto: [],
   },
   {
-    id: 'respuesta-telegrama',
-    nombre: 'Respuesta a telegramas del empleador',
-    descripcion: 'Redacta respuestas a despidos con causa, abandonos y misivas típicas del empleador.',
+    id: 'escritos-tramite',
+    nombre: 'Escritos de Trámite',
+    descripcion: 'Toda la papelería procesal: poder, cuota litis, segundo traslado, apertura a prueba, cédulas, oficios, acuerdos y ejecución.',
+    bloque: 'Redacción',
     modelos: [
       {
-        carpeta: 'telegramas',
-        label: 'Modelos de respuesta a telegramas',
-        ejemplo: 'Respuesta a despido con causa, rechazo abandono art. 244, contestación de injuria, respuesta a intimaciones del empleador.',
+        carpeta: 'escritos-tramite',
+        label: 'Escritos procesales del estudio',
+        ejemplo: 'Poder, pacto de cuota litis, escrito apertura a prueba, oficio bancario, acuerdo homologatorio.',
         obligatorio: true,
         minArchivos: 1,
       },
     ],
-    contexto: [
-      {
-        id: 'estrategia_misivas',
-        label: 'Estrategia frente a misivas típicas del empleador',
-        tipo: 'textarea',
-        obligatorio: false,
-        ayuda: 'Criterios para responder despidos con causa, abandonos, reducciones de jornada, etc.',
-      },
-      {
-        id: 'plazo_respuesta',
-        label: 'Plazo de respuesta estándar',
-        tipo: 'text',
-        obligatorio: false,
-        ayuda: 'Ej: 48 horas para despidos con causa, 24 horas para abandonos.',
-      },
-    ],
+    contexto: [],
   },
 ]
+
+// ─── Bloque 2 · Cálculo ───────────────────────────────────────────────────────
+
+const bloque2: Skill[] = [
+  {
+    id: 'liquidacion-rubros',
+    nombre: 'Liquidación de Rubros',
+    descripcion: 'Calcula la indemnización en modo preliminar, para demanda o actualizada. Para diferencias salariales necesita la escala del CCT.',
+    bloque: 'Cálculo',
+    modelos: [
+      {
+        carpeta: 'liquidaciones',
+        label: 'Planilla de liquidación del estudio (opcional)',
+        ejemplo: 'Planilla Excel con fórmulas para art. 245, preaviso, vacaciones, SAC, multas 24.013/25.323.',
+        obligatorio: false,
+        minArchivos: 0,
+      },
+    ],
+    contexto: [],
+  },
+]
+
+// ─── Bloque 3 · Estrategia ────────────────────────────────────────────────────
+
+const bloque3: Skill[] = [
+  {
+    id: 'analisis-contestacion',
+    nombre: 'Análisis de Contestación',
+    descripcion: 'Cruza la contestación del empleador contra el expediente y marca los puntos débiles de la contraria.',
+    bloque: 'Estrategia',
+    modelos: [],
+    contexto: [],
+  },
+  {
+    id: 'preparacion-testimonial',
+    nombre: 'Preparación Testimonial',
+    descripcion: 'Arma el punteo de qué debe reforzar cada testigo según las debilidades del caso.',
+    bloque: 'Estrategia',
+    modelos: [],
+    contexto: [],
+  },
+  {
+    id: 'impugnacion-pericial',
+    nombre: 'Impugnación Pericial',
+    descripcion: 'Redacta la impugnación a la pericia desfavorable (típico: diferencias salariales).',
+    bloque: 'Estrategia',
+    modelos: [
+      {
+        carpeta: 'impugnaciones',
+        label: 'Modelo de impugnación pericial del estudio',
+        ejemplo: 'Impugnación a pericia contable por diferencias salariales.',
+        obligatorio: true,
+        minArchivos: 1,
+      },
+    ],
+    contexto: [],
+  },
+  {
+    id: 'alegato',
+    nombre: 'Alegato',
+    descripcion: 'Sintetiza la prueba producida y arma el alegato orientado al pedido de sentencia.',
+    bloque: 'Estrategia',
+    modelos: [
+      {
+        carpeta: 'alegatos',
+        label: 'Formato de alegato del estudio (opcional)',
+        ejemplo: 'Alegato en caso de despido incausado, estructura y estilo del estudio.',
+        obligatorio: false,
+        minArchivos: 0,
+      },
+    ],
+    contexto: [],
+  },
+]
+
+// ─── Bloque 4 · Pre-litigio y gestión ────────────────────────────────────────
+
+const bloque4: Skill[] = [
+  {
+    id: 'triage-consultas',
+    nombre: 'Triage de Consultas',
+    descripcion: 'Aplica los filtros de viabilidad y devuelve continuar / descartar / derivar.',
+    bloque: 'Pre-litigio y gestión',
+    modelos: [],
+    contexto: [],
+  },
+  {
+    id: 'jurisdiccion-competencia',
+    nombre: 'Jurisdicción y Competencia',
+    descripcion: 'Determina fuero y procedimiento según los puntos de conexión. Se activa principalmente en estudios multi-provincia.',
+    bloque: 'Pre-litigio y gestión',
+    modelos: [],
+    contexto: [],
+  },
+  {
+    id: 'respuesta-clientes',
+    nombre: 'Respuesta a Clientes',
+    descripcion: 'Redacta instrucciones de acción, actualizaciones de estado y rendición final para el cliente.',
+    bloque: 'Pre-litigio y gestión',
+    modelos: [
+      {
+        carpeta: 'respuestas-clientes',
+        label: 'Plantillas de mensajes del estudio (opcional)',
+        ejemplo: 'Mensaje de actualización de estado, instrucciones post-telegrama, rendición final de honorarios.',
+        obligatorio: false,
+        minArchivos: 0,
+      },
+    ],
+    contexto: [],
+  },
+  {
+    id: 'investigacion-juridica',
+    nombre: 'Investigación Jurídica',
+    descripcion: 'Responde doctrina, jurisprudencia y tasas sin inventar citas.',
+    bloque: 'Pre-litigio y gestión',
+    modelos: [],
+    contexto: [],
+  },
+  {
+    id: 'contrato-honorarios',
+    nombre: 'Contrato de Honorarios',
+    descripcion: 'Genera el contrato de honorarios y el pacto de cuota litis con los parámetros del estudio.',
+    bloque: 'Pre-litigio y gestión',
+    modelos: [
+      {
+        carpeta: 'honorarios',
+        label: 'Contrato de honorarios y pacto de cuota litis',
+        ejemplo: 'Contrato de honorarios vigente del estudio, pacto de cuota litis firmado.',
+        obligatorio: true,
+        minArchivos: 1,
+      },
+    ],
+    contexto: [],
+  },
+]
+
+const SKILL_ORDER: SkillId[] = [
+  'triage-consultas',
+  'contrato-honorarios',
+  'respuesta-clientes',
+  'telegrama-cd',
+  'jurisdiccion-competencia',
+  'liquidacion-rubros',
+  'demanda-laboral',
+  'escritos-tramite',
+  'analisis-contestacion',
+  'preparacion-testimonial',
+  'impugnacion-pericial',
+  'alegato',
+  'investigacion-juridica',
+]
+
+const ALL_SKILLS = [...bloque1, ...bloque2, ...bloque3, ...bloque4]
+export const SKILLS: Skill[] = SKILL_ORDER.map(id => ALL_SKILLS.find(s => s.id === id)!)
 
 export const SKILL_MAP: Record<SkillId, Skill> = Object.fromEntries(
   SKILLS.map(s => [s.id, s])
 ) as Record<SkillId, Skill>
 
-/** Devuelve las carpetas únicas requeridas por las skills activas */
 export function carpetasDeSkills(skillIds: SkillId[]): ModeloRequerido[] {
   const vistas = new Set<string>()
   const resultado: ModeloRequerido[] = []
@@ -235,27 +263,9 @@ export function carpetasDeSkills(skillIds: SkillId[]): ModeloRequerido[] {
         vistas.add(modelo.carpeta)
         resultado.push(modelo)
       } else {
-        // Si ya existe la carpeta, fusionar obligatorio (OR) y minArchivos (MAX)
         const existente = resultado.find(r => r.carpeta === modelo.carpeta)!
         existente.obligatorio = existente.obligatorio || modelo.obligatorio
         existente.minArchivos = Math.max(existente.minArchivos, modelo.minArchivos)
-      }
-    }
-  }
-  return resultado
-}
-
-/** Devuelve los campos de contexto únicos (deduplicados por id) de las skills activas */
-export function camposContextoDeSkills(skillIds: SkillId[]): CampoContexto[] {
-  const vistos = new Set<string>()
-  const resultado: CampoContexto[] = []
-  for (const id of skillIds) {
-    const skill = SKILL_MAP[id]
-    if (!skill) continue
-    for (const campo of skill.contexto) {
-      if (!vistos.has(campo.id)) {
-        vistos.add(campo.id)
-        resultado.push(campo)
       }
     }
   }

@@ -24,8 +24,8 @@ const ITEMS: Item[] = [
   },
   {
     key: 'tieneGoogleWorkspace',
-    label: 'Tengo acceso a Google Workspace o Gmail (para los conectores)',
-    ayuda: 'Necesario si querés habilitar Drive, Calendar o Gmail.',
+    label: 'Tengo acceso a Google Workspace o Gmail',
+    ayuda: 'Necesario para usar Drive y Calendar junto al asistente.',
   },
   {
     key: 'accesoInternetEstable',
@@ -56,8 +56,8 @@ export function ChecklistTecnico() {
 
   const handleSiguiente = async () => {
     await saveChecklist(form)
-    completarPaso(5)
-    setPasoActivo(6)
+    completarPaso(4)
+    setPasoActivo(5)
   }
 
   return (
@@ -76,13 +76,13 @@ export function ChecklistTecnico() {
       <div className="bg-bg-card border border-border rounded-2xl p-5 mb-5">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm text-text-dim">{completados} de {ITEMS.length} confirmados</span>
-          <span className={cn('text-sm font-semibold', completo ? 'text-teal' : 'text-text-dim')}>
+          <span className={cn('text-sm font-semibold', completo ? 'text-success' : 'text-text-dim')}>
             {completo ? '¡Todo listo!' : `${ITEMS.length - completados} restantes`}
           </span>
         </div>
         <div className="h-1.5 bg-bg rounded-full overflow-hidden">
           <div
-            className="h-full bg-teal rounded-full transition-all duration-500"
+            className="h-full bg-success rounded-full transition-all duration-500"
             style={{ width: `${(completados / ITEMS.length) * 100}%` }}
           />
         </div>
@@ -99,18 +99,18 @@ export function ChecklistTecnico() {
               className={cn(
                 'w-full flex items-start gap-3.5 p-4 rounded-xl border text-left transition-all',
                 tildado
-                  ? 'bg-teal/6 border-teal/25'
+                  ? 'bg-success/6 border-success/25'
                   : 'bg-bg-card border-border hover:border-border-soft hover:bg-bg-3'
               )}
             >
               <div className={cn(
                 'w-5 h-5 rounded border-2 mt-0.5 shrink-0 flex items-center justify-center transition-all',
-                tildado ? 'bg-teal border-teal' : 'border-text-faint'
+                tildado ? 'bg-success border-success' : 'border-text-faint'
               )}>
                 {tildado && <span className="text-bg text-xs font-bold">✓</span>}
               </div>
               <div>
-                <p className={cn('text-sm font-medium leading-snug', tildado ? 'text-teal' : 'text-text')}>
+                <p className={cn('text-sm font-medium leading-snug', tildado ? 'text-success' : 'text-text')}>
                   {label}
                 </p>
                 <p className="text-sm text-text-dim mt-1 leading-relaxed">{ayuda}</p>
@@ -127,14 +127,14 @@ export function ChecklistTecnico() {
       )}
 
       {completo && (
-        <div className="mt-4 bg-teal/5 border border-teal/20 rounded-xl p-4 text-center">
-          <p className="text-sm text-teal font-medium">¡Perfecto! Estás listo para la reunión de alta.</p>
+        <div className="mt-4 bg-success/5 border border-success/20 rounded-xl p-4 text-center">
+          <p className="text-sm text-success font-medium">¡Perfecto! Estás listo para la reunión de alta.</p>
         </div>
       )}
 
       <NavPasos
         paso={5}
-        onAnterior={() => setPasoActivo(4)}
+        onAnterior={() => setPasoActivo(3)}
         onSiguiente={handleSiguiente}
         deshabilitarSiguiente={!completo}
         labelSiguiente="Ver resumen"

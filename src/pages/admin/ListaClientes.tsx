@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, ChevronRight, Users } from 'lucide-react'
 import type { ClienteResumen } from '@/types'
-import { usuarioService } from '@/services'
+import { usuarioService, progresoService } from '@/services'
 import { LABELS_ESTADO_ALTA, cn } from '@/lib/utils'
 
 const ESTADO_COLORES = {
@@ -17,9 +17,18 @@ export default function ListaClientes() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    usuarioService.listClientes().then(data => {
+    usuarioService.listClientes().then(async data => {
       setClientes(data)
       setLoading(false)
+      // Recalcula progreso en background para mantener cache actualizado
+      const actualizados = await Promise.all(
+        data.map(async c => {
+          if (!c.estudio.id) return c
+          const progreso = await progresoService.recalcularProgreso(c.estudio.id)
+          return { ...c, progreso }
+        })
+      )
+      setClientes(actualizados)
     })
   }, [])
 
@@ -71,7 +80,7 @@ export default function ListaClientes() {
           <div className="overflow-x-auto">
             <div className="min-w-[560px]">
               <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-0 text-xs text-text-faint uppercase tracking-widest px-5 py-3 border-b border-border">
-                <span>Estudio</span>
+                <span>Cliente</span>
                 <span>Avance</span>
                 <span>Estado</span>
                 <span>Contacto</span>
@@ -83,21 +92,21 @@ export default function ListaClientes() {
                   to={`/admin/clientes/${usuario.id}`}
                   className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-0 px-5 py-4 items-center border-b border-border/50 hover:bg-bg-3 transition-colors group last:border-0"
                 >
-                  {/* Estudio */}
+                  {/* Cliente */}
                   <div>
-                    <p className="text-sm font-medium text-text">{estudio.denominacion}</p>
-                    <p className="text-sm text-text-faint mt-0.5">{estudio.abogadoResponsable}</p>
+                    <p className="text-sm font-medium text-text">{usuario.nombre}</p>
+                    <p className="text-sm text-text-faint mt-0.5">{estudio.denominacion}</p>
                   </div>
 
                   {/* Avance */}
                   <div className="flex items-center gap-2">
                     <div className="w-16 h-1.5 bg-bg rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-teal rounded-full transition-all"
+                        className="h-full bg-success rounded-full transition-all"
                         style={{ width: `${progreso.porcentaje}%` }}
                       />
                     </div>
-                    <span className={cn('text-sm font-medium tabular-nums', progreso.porcentaje === 100 ? 'text-teal' : 'text-text-dim')}>
+                    <span className={cn('text-sm font-medium tabular-nums', progreso.porcentaje === 100 ? 'text-success' : 'text-text-dim')}>
                       {progreso.porcentaje}%
                     </span>
                   </div>

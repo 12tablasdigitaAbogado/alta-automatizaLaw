@@ -28,12 +28,12 @@ export function PasoIndicador({ numero, label, estado, activo, bloqueado, onClic
     >
       <div className={cn(
         'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all',
-        completo && 'bg-teal text-bg',
+        completo && 'bg-success text-bg',
         activo && !completo && 'bg-teal/15 text-teal border border-teal/40',
         !activo && !completo && !bloqueado && 'bg-bg-3 text-text-dim border border-border',
-        bloqueado && numero === 7 && 'bg-bg-3 border border-border'
+        bloqueado && numero === 6 && 'bg-bg-3 border border-border'
       )}>
-        {bloqueado && numero === 7 ? (
+        {bloqueado && numero === 6 ? (
           <Lock className="w-3 h-3 text-text-faint" />
         ) : completo ? (
           <Check className="w-3.5 h-3.5" />

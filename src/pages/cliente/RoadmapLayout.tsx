@@ -6,7 +6,6 @@ import { PasoIndicador } from '@/components/roadmap/PasoIndicador'
 import { Bienvenida } from './steps/Bienvenida'
 import { DatosEstudio } from './steps/DatosEstudio'
 import { ModulosConectores } from './steps/ModulosConectores'
-import { CargaModelos } from './steps/CargaModelos'
 import { ChecklistTecnico } from './steps/ChecklistTecnico'
 import { RevisionFinal } from './steps/RevisionFinal'
 import { AgendarAlta } from './steps/AgendarAlta'
@@ -15,11 +14,10 @@ import { Clock, LogOut, Zap } from 'lucide-react'
 const PASOS = [
   { num: 1, label: 'Bienvenida' },
   { num: 2, label: 'Identidad' },
-  { num: 3, label: 'Módulos' },
-  { num: 4, label: 'Modelos' },
-  { num: 5, label: 'Técnico' },
-  { num: 6, label: 'Revisión' },
-  { num: 7, label: 'Agendar' },
+  { num: 3, label: 'Skills' },
+  { num: 4, label: 'Técnico' },
+  { num: 5, label: 'Revisión' },
+  { num: 6, label: 'Agendar' },
 ]
 
 function RoadmapInner() {
@@ -44,10 +42,9 @@ function RoadmapInner() {
       case 1: return <Bienvenida />
       case 2: return <DatosEstudio />
       case 3: return <ModulosConectores />
-      case 4: return <CargaModelos />
-      case 5: return <ChecklistTecnico />
-      case 6: return <RevisionFinal />
-      case 7: return <AgendarAlta />
+      case 4: return <ChecklistTecnico />
+      case 5: return <RevisionFinal />
+      case 6: return <AgendarAlta />
       default: return <Bienvenida />
     }
   }
@@ -58,11 +55,11 @@ function RoadmapInner() {
 
       <div className="sticky top-[57px] z-30 bg-bg-2/80 backdrop-blur-md border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-1 overflow-x-auto">
+          <div className="flex items-center justify-center gap-1 overflow-x-auto">
             {PASOS.map((paso, i) => {
               const estado = progreso?.pasos[paso.num] ?? 'pendiente'
               const esActivo = pasoActivo === paso.num
-              const desbloqueado = paso.num !== 7 || progreso?.desbloqueado
+              const desbloqueado = paso.num !== 6 || progreso?.desbloqueado
               return (
                 <div key={paso.num} className="flex items-center">
                   <PasoIndicador
@@ -74,7 +71,7 @@ function RoadmapInner() {
                     onClick={() => { if (desbloqueado) setPasoActivo(paso.num) }}
                   />
                   {i < PASOS.length - 1 && (
-                    <div className={`w-6 h-px mx-0.5 shrink-0 ${estado === 'completo' ? 'bg-teal/40' : 'bg-border'}`} />
+                    <div className={`w-6 h-px mx-0.5 shrink-0 ${estado === 'completo' ? 'bg-success/40' : 'bg-border'}`} />
                   )}
                 </div>
               )

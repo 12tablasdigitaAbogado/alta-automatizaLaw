@@ -90,7 +90,7 @@ export const documentoService: DocumentoService = {
 export const configuracionService: ConfiguracionService = {
   async getConfiguracion(estudioId) {
     await delay()
-    return configState[estudioId] ?? { skillIds: [], conectores: [] }
+    return configState[estudioId] ?? { skillIds: [] }
   },
   async saveConfiguracion(estudioId, config) {
     await delay()
@@ -135,7 +135,7 @@ async function recalcularYGuardar(estudioId: string): Promise<ProgresoRoadmap> {
   const estudio = estudiosState[estudioId]
   const docs = documentosState[estudioId] ?? []
   const checklist = checklistState[estudioId]
-  const config = configState[estudioId] ?? { skillIds: [], conectores: [] }
+  const config = configState[estudioId] ?? { skillIds: [] }
   const contexto = contextoState[estudioId] ?? {}
   const pasos = progresoState[estudioId]?.pasos ?? {
     1: 'pendiente', 2: 'pendiente', 3: 'pendiente',
@@ -266,7 +266,7 @@ export const usuarioService: UsuarioService = {
           matricula: '', domicilio: '', telefono: '', email: usuario.email,
           estiloRedaccion: '', pieFirma: '',
         },
-        configuracion: configState[estudioId] ?? { skillIds: [], conectores: [] },
+        configuracion: configState[estudioId] ?? { skillIds: [] },
         contexto: contextoState[estudioId] ?? {},
         documentos: documentosState[estudioId] ?? [],
         progreso: progresoState[estudioId] ?? {

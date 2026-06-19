@@ -22,11 +22,11 @@ export function TopBarCliente() {
         <div className="flex items-center gap-2.5 bg-bg-3 border border-border px-3 py-1.5 rounded-full">
           <div className="relative w-24 h-1.5 bg-bg rounded-full overflow-hidden">
             <div
-              className="absolute inset-y-0 left-0 bg-teal rounded-full transition-all duration-700"
+              className="absolute inset-y-0 left-0 bg-success rounded-full transition-all duration-700"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <span className="text-xs font-medium text-teal tabular-nums">{pct}%</span>
+          <span className="text-xs font-medium text-success tabular-nums">{pct}%</span>
         </div>
 
         {/* User */}

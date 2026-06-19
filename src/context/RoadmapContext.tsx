@@ -45,7 +45,7 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
   const [pasoActivo, setPasoActivo] = useState(1)
   const [estudio, setEstudio] = useState<Partial<Estudio>>({})
   const [documentos, setDocumentos] = useState<Documento[]>([])
-  const [configuracion, setConfiguracion] = useState<ConfiguracionModulos>({ skillIds: [], conectores: [] })
+  const [configuracion, setConfiguracion] = useState<ConfiguracionModulos>({ skillIds: [] })
   const [contextoEstudio, setContextoEstudio] = useState<ContextoEstudio>({})
   const [checklist, setChecklist] = useState<ChecklistTecnico>({
     claudeDesktopInstalado: false,

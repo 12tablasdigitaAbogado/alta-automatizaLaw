@@ -57,8 +57,7 @@ export function Bienvenida() {
         <div className="space-y-2.5">
           {[
             'Datos del estudio (identidad legal)',
-            'Carga de modelos y plantillas',
-            'Selección de módulos y conectores',
+            'Skills y carga de modelos',
             'Checklist técnico rápido',
             'Revisión final y agendamiento',
           ].map((item, i) => (

@@ -10,13 +10,22 @@
   --color-text: #e8e8f0;
   --color-text-dim: #9898a8;
   --color-text-faint: #5a5a6a;
-  --color-teal: #00e0cf;
-  --color-teal-hover: #33e8da;
-  --color-teal-soft: #00b8a9;
+  --color-teal: #b07ef5;
+  --color-teal-hover: #c49bf7;
+  --color-teal-soft: #8b3ee5;
   --color-purple: #8b3ee5;
   --color-purple-light: #b07ef5;
+  --color-success: #00e0cf;
   --color-warning: #d4a857;
   --color-coral: #c97264;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.1875rem;
+  --text-xl: 1.3125rem;
+  --text-2xl: 1.5625rem;
+  --text-3xl: 1.9375rem;
 }
 
 :root {
@@ -59,13 +68,13 @@ body {
 }
 
 .glow-teal {
-  box-shadow: 0 0 24px rgba(0, 224, 207, 0.18), 0 0 48px rgba(0, 224, 207, 0.06);
+  box-shadow: 0 0 24px rgba(176, 126, 245, 0.22), 0 0 48px rgba(176, 126, 245, 0.08);
 }
 .glow-purple {
   box-shadow: 0 0 24px rgba(139, 62, 229, 0.22), 0 0 48px rgba(139, 62, 229, 0.08);
 }
 .text-glow-teal {
-  text-shadow: 0 0 14px rgba(0, 224, 207, 0.55);
+  text-shadow: 0 0 14px rgba(176, 126, 245, 0.6);
 }
 
 @keyframes unlock {
@@ -106,7 +115,7 @@ body {
   gap: 0.5rem;
   padding: 0.625rem 1rem;
   border-radius: 0.75rem;
-  background-color: #00e0cf;
+  background-color: #b07ef5;
   color: #0f0f12;
   font-size: 0.875rem;
   font-weight: 600;
@@ -115,6 +124,6 @@ body {
   transition: background-color 0.15s, opacity 0.15s;
 }
 .btn-primary:hover {
-  background-color: #33e8da;
+  background-color: #c49bf7;
 }
 

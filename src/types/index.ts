@@ -28,7 +28,7 @@ export type ContextoEstudio = Record<string, string>
 export interface Documento {
   id: string
   estudioId: string
-  carpeta: string        // slug de subcarpeta Drive: 'intake', 'telegramas', 'liquidaciones', 'demandas'
+  carpeta: string
   nombre: string
   tamano: number
   fecha: string
@@ -36,17 +36,22 @@ export interface Documento {
 }
 
 export type SkillId =
-  | 'alta-caso'
   | 'telegrama-cd'
-  | 'liquidacion'
   | 'demanda-laboral'
-  | 'respuesta-telegrama'
-
-export type ConectorId = 'google-drive' | 'google-calendar' | 'gmail'
+  | 'escritos-tramite'
+  | 'liquidacion-rubros'
+  | 'analisis-contestacion'
+  | 'preparacion-testimonial'
+  | 'impugnacion-pericial'
+  | 'alegato'
+  | 'triage-consultas'
+  | 'jurisdiccion-competencia'
+  | 'respuesta-clientes'
+  | 'investigacion-juridica'
+  | 'contrato-honorarios'
 
 export interface ConfiguracionModulos {
   skillIds: SkillId[]
-  conectores: ConectorId[]
 }
 
 export type EstadoPaso = 'pendiente' | 'en-progreso' | 'completo'

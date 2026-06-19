@@ -17,12 +17,6 @@ export function formatFecha(iso: string): string {
   return `${d}/${m}/${y}`
 }
 
-export const LABELS_CONECTOR = {
-  'google-drive': 'Google Drive',
-  'google-calendar': 'Google Calendar',
-  'gmail': 'Gmail',
-} as const
-
 export const LABELS_ESTADO_ALTA = {
   'pendiente': 'Pendiente',
   'agendada': 'Alta agendada',
@@ -30,8 +24,12 @@ export const LABELS_ESTADO_ALTA = {
 } as const
 
 export const LABEL_CARPETA: Record<string, string> = {
-  intake: 'Apertura de caso',
   telegramas: 'Telegramas y cartas documento',
+  demandas: 'Demandas laborales',
+  'escritos-tramite': 'Escritos de trámite',
   liquidaciones: 'Liquidaciones',
-  demandas: 'Demandas',
+  impugnaciones: 'Impugnaciones periciales',
+  alegatos: 'Alegatos',
+  'respuestas-clientes': 'Respuestas a clientes',
+  honorarios: 'Contratos de honorarios',
 }

@@ -7,7 +7,7 @@ import type {
   Estudio, Documento, ConfiguracionModulos, ContextoEstudio,
   ChecklistTecnico, ProgresoRoadmap, Alta, ClienteResumen, Usuario, Rol, EstadoCliente,
 } from '@/types'
-import { SKILL_MAP, carpetasDeSkills } from '@/data/skills'
+import { carpetasDeSkills } from '@/data/skills'
 
 const STORAGE_BUCKET = 'modelos'
 
@@ -55,7 +55,7 @@ function rowToChecklist(row: any): ChecklistTecnico {
 function rowToProgreso(row: any, usuarioId = ''): ProgresoRoadmap {
   return {
     usuarioId,
-    pasos: row.pasos ?? { 1: 'pendiente', 2: 'pendiente', 3: 'pendiente', 4: 'pendiente', 5: 'pendiente', 6: 'pendiente', 7: 'pendiente' },
+    pasos: row.pasos ?? { ...PROGRESO_DEFAULT_PASOS },
     porcentaje: row.porcentaje ?? 0,
     identidadCompleta: row.identidad_completa ?? false,
     tieneDocumentos: row.tiene_documentos ?? false,
@@ -80,7 +80,7 @@ function rowToAlta(row: any): Alta {
 
 const PROGRESO_DEFAULT_PASOS = {
   1: 'pendiente', 2: 'pendiente', 3: 'pendiente',
-  4: 'pendiente', 5: 'pendiente', 6: 'pendiente', 7: 'pendiente',
+  4: 'pendiente', 5: 'pendiente', 6: 'pendiente',
 } as const
 
 // ─── EstudioService ──────────────────────────────────────────────────────────
@@ -201,16 +201,15 @@ export const documentoService: DocumentoService = {
 
 export const configuracionService: ConfiguracionService = {
   async getConfiguracion(estudioId) {
-    if (!estudioId) return { skillIds: [], conectores: [] }
+    if (!estudioId) return { skillIds: [] }
     const { data } = await supabase
       .from('configuracion_modulos')
-      .select('modulos, conectores')
+      .select('modulos')
       .eq('estudio_id', estudioId)
       .single()
-    if (!data) return { skillIds: [], conectores: [] }
+    if (!data) return { skillIds: [] }
     return {
       skillIds: (data.modulos ?? []) as ConfiguracionModulos['skillIds'],
-      conectores: (data.conectores ?? []) as ConfiguracionModulos['conectores'],
     }
   },
 
@@ -219,7 +218,7 @@ export const configuracionService: ConfiguracionService = {
     const { error } = await supabase
       .from('configuracion_modulos')
       .upsert(
-        { estudio_id: estudioId, modulos: config.skillIds, conectores: config.conectores, updated_at: new Date().toISOString() },
+        { estudio_id: estudioId, modulos: config.skillIds, updated_at: new Date().toISOString() },
         { onConflict: 'estudio_id' }
       )
     if (error) throw new Error(error.message)
@@ -323,19 +322,6 @@ async function computeYGuardar(estudioId: string): Promise<ProgresoRoadmap> {
     .filter(c => c.obligatorio)
     .every(c => docList.filter((d: { carpeta: string }) => d.carpeta === c.carpeta).length >= c.minArchivos)
 
-  const contexto = (estudioRow?.contexto as ContextoEstudio) ?? {}
-  const camposObligatorios = skillIds.flatMap(id => {
-    const skill = SKILL_MAP[id]
-    return skill ? skill.contexto.filter(c => c.obligatorio) : []
-  })
-  const idsVistos = new Set<string>()
-  const camposUnicos = camposObligatorios.filter(c => {
-    if (idsVistos.has(c.id)) return false
-    idsVistos.add(c.id)
-    return true
-  })
-  const contextoOk = camposUnicos.every(c => !!(contexto[c.id]?.trim()))
-
   const tieneDocumentos = skillIds.length === 0 ? docList.length > 0 : modelosOk
 
   const checklist = chkRow ? rowToChecklist(chkRow) : null
@@ -347,7 +333,7 @@ async function computeYGuardar(estudioId: string): Promise<ProgresoRoadmap> {
     checklist?.disponibleParaReunion
   )
 
-  const desbloqueado = identidadCompleta && tieneDocumentos && contextoOk && checklistCompleto
+  const desbloqueado = identidadCompleta && checklistCompleto
 
   const pasos = (progresoRow?.pasos as ProgresoRoadmap['pasos']) ?? { ...PROGRESO_DEFAULT_PASOS }
   const pasosBase = [1, 2, 3, 4, 5, 6]
@@ -494,7 +480,7 @@ export const usuarioService: UsuarioService = {
         estudios!perfiles_estudio_id_fkey (
           id, denominacion, abogado_responsable, matricula, domicilio, telefono,
           email_estudio, estilo_redaccion, pie_firma, contexto,
-          configuracion_modulos ( modulos, conectores ),
+          configuracion_modulos ( modulos ),
           progreso_roadmap ( pasos, porcentaje, identidad_completa, tiene_documentos, checklist_completo, desbloqueado ),
           documentos ( id, estudio_id, carpeta, nombre, tamano, fecha ),
           altas ( id, estudio_id, fecha, hora_inicio, hora_fin, link_meet, estado, notas )
@@ -521,7 +507,7 @@ export const usuarioService: UsuarioService = {
         return {
           usuario,
           estudio: { id: '', denominacion: 'Sin datos', abogadoResponsable: '', matricula: '', domicilio: '', telefono: '', email: p.email, estiloRedaccion: '', pieFirma: '' },
-          configuracion: { skillIds: [], conectores: [] },
+          configuracion: { skillIds: [] },
           contexto: {},
           documentos: [],
           progreso: { usuarioId: p.id, pasos: { ...PROGRESO_DEFAULT_PASOS }, porcentaje: 0, identidadCompleta: false, tieneDocumentos: false, checklistCompleto: false, desbloqueado: false },
@@ -539,7 +525,6 @@ export const usuarioService: UsuarioService = {
         estudio: rowToEstudio(est),
         configuracion: {
           skillIds: (cfg?.modulos ?? []) as ConfiguracionModulos['skillIds'],
-          conectores: (cfg?.conectores ?? []) as ConfiguracionModulos['conectores'],
         },
         contexto: (est.contexto as ContextoEstudio) ?? {},
         documentos: (est.documentos ?? []).map(rowToDocumento),

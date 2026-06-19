@@ -1,22 +1,20 @@
-import { CheckCircle2, AlertCircle, Building2, FolderOpen, Puzzle, ClipboardCheck, BookOpen } from 'lucide-react'
+import { CheckCircle2, AlertCircle, AlertTriangle, Building2, FolderOpen, Puzzle, ClipboardCheck } from 'lucide-react'
 import { NavPasos } from '@/components/roadmap/NavPasos'
 import { useRoadmap } from '@/context/RoadmapContext'
-import { SKILL_MAP, carpetasDeSkills, camposContextoDeSkills } from '@/data/skills'
-import { LABELS_CONECTOR, LABEL_CARPETA, cn } from '@/lib/utils'
+import { SKILL_MAP, carpetasDeSkills } from '@/data/skills'
+import { LABEL_CARPETA, cn } from '@/lib/utils'
 
 export function RevisionFinal() {
   const { estudio, documentos, configuracion, contextoEstudio, checklist, progreso, setPasoActivo, completarPaso } = useRoadmap()
 
   const handleSiguiente = () => {
-    completarPaso(6)
-    setPasoActivo(7)
+    completarPaso(5)
+    setPasoActivo(6)
   }
 
   const skillIds = configuracion.skillIds
   const carpetas = carpetasDeSkills(skillIds)
-  const camposContexto = camposContextoDeSkills(skillIds)
 
-  // Gating items
   const { identidadCompleta, checklistCompleto, desbloqueado } = progreso ?? {}
 
   const modelosPorCarpeta = carpetas.map(c => ({
@@ -26,9 +24,6 @@ export function RevisionFinal() {
   }))
 
   const modelosOk = modelosPorCarpeta.filter(c => c.obligatorio).every(c => c.ok)
-
-  const contextoObligatorio = camposContexto.filter(c => c.obligatorio)
-  const contextoOk = contextoObligatorio.every(c => !!(contextoEstudio[c.id]?.trim()))
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -42,31 +37,32 @@ export function RevisionFinal() {
         </div>
       </div>
 
-      {/* Estado del gating */}
-      <div className={cn(
-        'rounded-2xl p-5 mb-6 border',
-        desbloqueado ? 'bg-teal/5 border-teal/25' : 'bg-bg-card border-border'
-      )}>
-        <p className={cn('text-sm font-semibold mb-3', desbloqueado ? 'text-teal' : 'text-text')}>
-          {desbloqueado ? '¡Listo para agendar!' : 'Aún faltan requisitos obligatorios'}
-        </p>
-        <div className="space-y-2">
-          {[
-            { ok: identidadCompleta, label: 'Identidad del estudio completa' },
-            { ok: modelosOk, label: 'Modelos obligatorios cargados' },
-            { ok: contextoOk || camposContexto.filter(c => c.obligatorio).length === 0, label: 'Contexto laboral completo' },
-            { ok: checklistCompleto, label: 'Checklist técnico completado' },
-          ].map(({ ok, label }) => (
-            <div key={label} className="flex items-center gap-2.5">
-              {ok ? (
-                <CheckCircle2 className="w-4 h-4 text-teal shrink-0" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-coral shrink-0" />
-              )}
-              <span className={cn('text-sm', ok ? 'text-text' : 'text-text-dim')}>{label}</span>
+      {/* Alertas primero */}
+      <div className="space-y-3 mb-6">
+        {!identidadCompleta && (
+          <div className="flex items-center gap-3 bg-coral/5 border border-coral/20 rounded-xl px-4 py-3">
+            <AlertCircle className="w-4 h-4 text-coral shrink-0" />
+            <p className="text-sm text-coral font-medium">Falta completar la identidad del estudio</p>
+            <button onClick={() => setPasoActivo(2)} className="ml-auto text-sm text-coral hover:underline shrink-0">Ir al paso 2</button>
+          </div>
+        )}
+        {!checklistCompleto && (
+          <div className="flex items-center gap-3 bg-coral/5 border border-coral/20 rounded-xl px-4 py-3">
+            <AlertCircle className="w-4 h-4 text-coral shrink-0" />
+            <p className="text-sm text-coral font-medium">Falta completar el checklist técnico</p>
+            <button onClick={() => setPasoActivo(4)} className="ml-auto text-sm text-coral hover:underline shrink-0">Ir al paso 4</button>
+          </div>
+        )}
+        {!modelosOk && (
+          <div className="flex items-start gap-3 bg-amber-400/5 border border-amber-400/20 rounded-xl px-4 py-3">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-amber-400 font-medium">Algunas skills no tienen modelo cargado</p>
+              <p className="text-sm text-text-dim mt-0.5">Se usará un modelo genérico en esos casos.</p>
             </div>
-          ))}
-        </div>
+            <button onClick={() => setPasoActivo(3)} className="ml-auto text-sm text-amber-400 hover:underline shrink-0">Ir al paso 3</button>
+          </div>
+        )}
       </div>
 
       {/* Identidad */}
@@ -103,7 +99,7 @@ export function RevisionFinal() {
           <h2 className="text-sm font-semibold text-text">Skills activadas</h2>
         </div>
         {skillIds.length === 0 ? (
-          <EmptyState paso={3} label="Seleccioná las skills del estudio" onClick={() => setPasoActivo(3)} />
+          <EmptyState paso={3} label="Completá las skills del estudio" onClick={() => setPasoActivo(3)} />
         ) : (
           <div className="flex flex-wrap gap-2">
             {skillIds.map(id => (
@@ -151,41 +147,10 @@ export function RevisionFinal() {
             ))}
           </div>
         ) : (
-          <EmptyState paso={4} label="Subí al menos un modelo obligatorio" onClick={() => setPasoActivo(4)} />
+          <EmptyState paso={3} label="Subí al menos un modelo en el paso de skills" onClick={() => setPasoActivo(3)} />
         )}
       </div>
 
-      {/* Contexto laboral */}
-      {camposContexto.length > 0 && (
-        <div className="bg-bg-card border border-border rounded-2xl p-5 mb-4">
-          <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="w-4 h-4 text-text-dim" />
-            <h2 className="text-sm font-semibold text-text">Contexto laboral</h2>
-          </div>
-          <div className="space-y-2">
-            {camposContexto.slice(0, 4).map(campo => (
-              <div key={campo.id} className="flex items-start gap-2">
-                <span className="text-sm text-text-faint min-w-0 w-36 shrink-0">{campo.label}</span>
-                <span className="text-sm text-text truncate">
-                  {contextoEstudio[campo.id] || <span className="text-text-faint italic">—</span>}
-                </span>
-              </div>
-            ))}
-            {camposContexto.length > 4 && (
-              <p className="text-sm text-text-faint">+{camposContexto.length - 4} campos más</p>
-            )}
-          </div>
-          {!contextoOk && (
-            <button
-              onClick={() => setPasoActivo(2)}
-              className="flex items-center gap-1.5 text-sm text-coral hover:text-coral/80 mt-3 transition-colors"
-            >
-              <AlertCircle className="w-3.5 h-3.5" />
-              Completar contexto obligatorio (ir al paso 2)
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Checklist */}
       <div className="bg-bg-card border border-border rounded-2xl p-5 mb-2">
@@ -196,32 +161,15 @@ export function RevisionFinal() {
         {checklistCompleto ? (
           <p className="text-sm text-teal">Todo confirmado ✓</p>
         ) : (
-          <EmptyState paso={5} label="Completá el checklist técnico" onClick={() => setPasoActivo(5)} />
+          <EmptyState paso={4} label="Completá el checklist técnico" onClick={() => setPasoActivo(4)} />
         )}
       </div>
 
-      {/* Conectores */}
-      {configuracion.conectores.length > 0 && (
-        <div className="bg-bg-card border border-border rounded-2xl p-5 mb-2">
-          <div className="flex items-center gap-2 mb-3">
-            <Puzzle className="w-4 h-4 text-text-dim" />
-            <h2 className="text-sm font-semibold text-text">Conectores</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {configuracion.conectores.map(c => (
-              <span key={c} className="text-sm px-2.5 py-1 bg-purple/8 text-purple-light rounded-full border border-purple/15">
-                {LABELS_CONECTOR[c]}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
       <NavPasos
         paso={6}
-        onAnterior={() => setPasoActivo(5)}
+        onAnterior={() => setPasoActivo(4)}
         onSiguiente={handleSiguiente}
-        labelSiguiente={desbloqueado ? '¡Agendar mi alta!' : 'Ver paso 7 (bloqueado)'}
+        labelSiguiente={desbloqueado ? '¡Agendar mi alta!' : 'Ver paso 6 (bloqueado)'}
       />
     </div>
   )

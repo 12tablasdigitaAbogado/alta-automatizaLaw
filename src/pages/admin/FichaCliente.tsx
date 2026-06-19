@@ -6,10 +6,10 @@ import {
 } from 'lucide-react'
 import { zip, strToU8 } from 'fflate'
 import type { ClienteResumen } from '@/types'
-import { usuarioService } from '@/services'
+import { usuarioService, progresoService } from '@/services'
 import { supabase } from '@/lib/supabase'
 import { SKILL_MAP, carpetasDeSkills } from '@/data/skills'
-import { LABELS_CONECTOR, LABELS_ESTADO_ALTA, LABEL_CARPETA, cn } from '@/lib/utils'
+import { LABELS_ESTADO_ALTA, LABEL_CARPETA, cn } from '@/lib/utils'
 
 const RUNBOOK: { id: string; label: string }[] = [
   { id: 'drive-estructura', label: 'Crear estructura de carpetas en Drive del estudio' },
@@ -62,9 +62,14 @@ export default function FichaCliente() {
 
   useEffect(() => {
     if (!id) return
-    usuarioService.listClientes().then(clientes => {
+    usuarioService.listClientes().then(async clientes => {
       const cliente = clientes.find(c => c.usuario.id === id)
-      setData(cliente ?? null)
+      if (cliente?.estudio.id) {
+        const progreso = await progresoService.recalcularProgreso(cliente.estudio.id)
+        setData({ ...cliente, progreso })
+      } else {
+        setData(cliente ?? null)
+      }
       setLoading(false)
     })
   }, [id])
@@ -163,7 +168,7 @@ export default function FichaCliente() {
           </span>
           <div className="flex items-center gap-2 bg-bg-card border border-border px-3 py-1.5 rounded-full">
             <div className="w-16 h-1.5 bg-bg rounded-full overflow-hidden">
-              <div className="h-full bg-teal rounded-full" style={{ width: `${progreso.porcentaje}%` }} />
+              <div className="h-full bg-success rounded-full" style={{ width: `${progreso.porcentaje}%` }} />
             </div>
             <span className="text-xs text-teal font-medium">{progreso.porcentaje}%</span>
           </div>
@@ -306,18 +311,6 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? '‚
                   </div>
                 )}
               </div>
-              {configuracion.conectores.length > 0 && (
-                <div>
-                  <p className="text-sm text-text-dim mb-1.5">Conectores a habilitar</p>
-                  <div className="flex flex-wrap gap-2">
-                    {configuracion.conectores.map(c => (
-                      <span key={c} className="text-sm px-2.5 py-1 bg-purple/8 text-purple-light rounded-full border border-purple/15">
-                        {LABELS_CONECTOR[c]}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
               <p className="text-sm text-text-dim pt-1 border-t border-border">
                 El plugin es est√°tico ‚Äî el mismo archivo para todos los estudios. Lo que var√≠a es la carpeta Drive conectada.
               </p>
@@ -334,7 +327,7 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? '‚
             <div className="flex items-center gap-2 mb-4">
               <div className="flex-1 h-1.5 bg-bg rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-teal rounded-full transition-all duration-300"
+                  className="h-full bg-success rounded-full transition-all duration-300"
                   style={{ width: `${(runbookCompletados / RUNBOOK.length) * 100}%` }}
                 />
               </div>

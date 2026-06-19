@@ -26,23 +26,20 @@ export const MOCK_CHECKLIST: Record<string, ChecklistTecnico> = {
 
 export const MOCK_CONFIGURACION: Record<string, ConfiguracionModulos> = {
   'estudio-001': {
-    skillIds: ['telegrama-cd', 'demanda-laboral', 'respuesta-telegrama'],
-    conectores: ['google-drive', 'google-calendar', 'gmail'],
+    skillIds: ['telegrama-cd', 'demanda-laboral', 'escritos-tramite'],
   },
   'estudio-002': {
     skillIds: [],
-    conectores: [],
   },
   'estudio-003': {
-    skillIds: ['alta-caso', 'liquidacion', 'demanda-laboral'],
-    conectores: ['google-drive'],
+    skillIds: ['triage-consultas', 'liquidacion-rubros', 'demanda-laboral'],
   },
 }
 
 export const MOCK_PROGRESO: Record<string, ProgresoRoadmap> = {
   'estudio-001': {
     usuarioId: 'user-001',
-    pasos: { 1: 'completo', 2: 'completo', 3: 'completo', 4: 'completo', 5: 'completo', 6: 'completo', 7: 'completo' },
+    pasos: { 1: 'completo', 2: 'completo', 3: 'completo', 4: 'completo', 5: 'completo', 6: 'completo' },
     porcentaje: 100,
     identidadCompleta: true,
     tieneDocumentos: true,
@@ -51,7 +48,7 @@ export const MOCK_PROGRESO: Record<string, ProgresoRoadmap> = {
   },
   'estudio-002': {
     usuarioId: 'user-002',
-    pasos: { 1: 'completo', 2: 'en-progreso', 3: 'pendiente', 4: 'pendiente', 5: 'pendiente', 6: 'pendiente', 7: 'pendiente' },
+    pasos: { 1: 'completo', 2: 'en-progreso', 3: 'pendiente', 4: 'pendiente', 5: 'pendiente', 6: 'pendiente' },
     porcentaje: 20,
     identidadCompleta: false,
     tieneDocumentos: false,
@@ -60,7 +57,7 @@ export const MOCK_PROGRESO: Record<string, ProgresoRoadmap> = {
   },
   'estudio-003': {
     usuarioId: 'user-003',
-    pasos: { 1: 'completo', 2: 'completo', 3: 'completo', 4: 'completo', 5: 'completo', 6: 'completo', 7: 'completo' },
+    pasos: { 1: 'completo', 2: 'completo', 3: 'completo', 4: 'completo', 5: 'completo', 6: 'completo' },
     porcentaje: 100,
     identidadCompleta: true,
     tieneDocumentos: true,

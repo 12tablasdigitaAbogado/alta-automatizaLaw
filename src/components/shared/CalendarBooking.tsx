@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 const CALENDLY_URL =
-  'https://calendly.com/jorgedujedev/nueva-reunion?hide_event_type_details=1&hide_gdpr_banner=1'
+  'https://calendly.com/jorgedujedev/alta-agente?hide_event_type_details=1&hide_gdpr_banner=1'
 
 declare global {
   interface Window {
