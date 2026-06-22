@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
-import { UserCheck, UserX, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { UserCheck, UserX, Clock, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+
+const PAGE_SIZE = 20
 
 interface Solicitud {
   id: string
@@ -24,6 +26,26 @@ export default function Solicitudes() {
   const [filtro, setFiltro] = useState<Filtro>('pendiente')
   const [loading, setLoading] = useState(true)
   const [procesando, setProcesando] = useState<string | null>(null)
+  const [pagina, setPagina] = useState(1)
+  const [counts, setCounts] = useState<Record<Filtro, number>>({ pendiente: 0, activo: 0, rechazado: 0 })
+
+  useEffect(() => { setPagina(1) }, [filtro])
+
+  const cargarCounts = async () => {
+    const estados: Filtro[] = ['pendiente', 'activo', 'rechazado']
+    const results = await Promise.all(
+      estados.map(e =>
+        supabase.from('perfiles').select('id', { count: 'exact', head: true }).eq('rol', 'cliente').eq('estado', e)
+      )
+    )
+    setCounts({
+      pendiente: results[0].count ?? 0,
+      activo: results[1].count ?? 0,
+      rechazado: results[2].count ?? 0,
+    })
+  }
+
+  useEffect(() => { cargarCounts() }, [])
 
   const cargar = async () => {
     setLoading(true)
@@ -43,10 +65,20 @@ export default function Solicitudes() {
     setProcesando(id)
     await supabase.from('perfiles').update({ estado: nuevoEstado }).eq('id', id)
     setSolicitudes(prev => prev.filter(s => s.id !== id))
+    setCounts(prev => ({
+      ...prev,
+      [filtro]: Math.max(0, prev[filtro] - 1),
+      [nuevoEstado]: prev[nuevoEstado] + 1,
+    }))
     setProcesando(null)
   }
 
-  const pendientesCount = solicitudes.length
+  const total = solicitudes.length
+  const totalPaginas = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const paginaSegura = Math.min(pagina, totalPaginas)
+  const desde = (paginaSegura - 1) * PAGE_SIZE
+  const hasta = Math.min(desde + PAGE_SIZE, total)
+  const visibles = solicitudes.slice(desde, hasta)
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
@@ -58,9 +90,11 @@ export default function Solicitudes() {
         <div>
           <h1 className="text-xl font-bold text-text">Solicitudes</h1>
           <p className="text-sm text-text-dim">
-            {filtro === 'pendiente'
-              ? `${pendientesCount} solicitud${pendientesCount !== 1 ? 'es' : ''} pendiente${pendientesCount !== 1 ? 's' : ''}`
-              : `${pendientesCount} cliente${pendientesCount !== 1 ? 's' : ''} ${filtro === 'activo' ? 'aprobados' : 'rechazados'}`}
+            <span className="text-warning">{counts.pendiente} pendientes</span>
+            <span className="text-text-faint"> · </span>
+            <span className="text-teal">{counts.activo} aprobados</span>
+            <span className="text-text-faint"> · </span>
+            <span className="text-coral">{counts.rechazado} rechazados</span>
           </p>
         </div>
       </div>
@@ -72,13 +106,19 @@ export default function Solicitudes() {
             key={f.value}
             onClick={() => setFiltro(f.value)}
             className={cn(
-              'px-4 py-1.5 text-sm font-medium rounded-lg transition-all',
+              'flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg transition-all',
               filtro === f.value
                 ? 'bg-bg-card text-text border border-border shadow-sm'
                 : 'text-text-dim hover:text-text'
             )}
           >
             {f.label}
+            <span className={cn(
+              'text-xs tabular-nums px-1.5 py-0.5 rounded-md',
+              filtro === f.value ? 'bg-bg-3 text-text-dim' : 'bg-bg-card text-text-faint'
+            )}>
+              {counts[f.value]}
+            </span>
           </button>
         ))}
       </div>
@@ -96,37 +136,37 @@ export default function Solicitudes() {
         </div>
       ) : (
         <div className="bg-bg-card border border-border rounded-2xl overflow-hidden">
-          {solicitudes.map((s, i) => (
+          {visibles.map((s, i) => (
             <div
               key={s.id}
               className={cn(
-                'flex items-center justify-between px-5 py-4 gap-4',
-                i < solicitudes.length - 1 && 'border-b border-border/50'
+                'grid grid-cols-[1.2fr_1.4fr_110px_200px] items-center px-5 py-4 gap-4',
+                i < visibles.length - 1 && 'border-b border-border/50'
               )}
             >
-              {/* Info */}
+              {/* Nombre */}
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-full bg-bg-3 border border-border flex items-center justify-center shrink-0">
                   <span className="text-sm font-semibold text-text-dim">
                     {s.nombre.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-text truncate">{s.nombre}</p>
-                  <p className="text-xs text-text-faint truncate">{s.email}</p>
-                </div>
+                <p className="text-sm font-medium text-text truncate">{s.nombre}</p>
               </div>
 
+              {/* Email */}
+              <p className="text-sm text-text-dim truncate min-w-0">{s.email}</p>
+
               {/* Fecha */}
-              <span className="text-xs text-text-faint shrink-0 hidden sm:block">
+              <span className="text-xs text-text-dim tabular-nums hidden sm:block">
                 {new Date(s.created_at).toLocaleDateString('es-AR', {
-                  day: '2-digit', month: 'short', year: 'numeric'
+                  day: '2-digit', month: '2-digit', year: 'numeric'
                 })}
               </span>
 
               {/* Badge estado (para no-pendientes) o Acciones */}
               {filtro === 'pendiente' ? (
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 justify-end">
                   <button
                     onClick={() => cambiarEstado(s.id, 'rechazado')}
                     disabled={procesando === s.id}
@@ -146,7 +186,7 @@ export default function Solicitudes() {
                 </div>
               ) : (
                 <span className={cn(
-                  'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border shrink-0',
+                  'inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border w-fit justify-self-end',
                   filtro === 'activo'
                     ? 'text-teal bg-teal/8 border-teal/20'
                     : 'text-coral bg-coral/8 border-coral/20'
@@ -158,6 +198,38 @@ export default function Solicitudes() {
               )}
             </div>
           ))}
+
+          {/* Paginación */}
+          {total > 0 && (
+            <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-border">
+              <p className="text-xs text-text-faint">
+                {desde + 1}–{hasta} de {total}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPagina(p => Math.max(1, p - 1))}
+                  disabled={paginaSegura <= 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-text-dim hover:bg-bg-3 hover:text-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-sm text-text-dim tabular-nums px-3">
+                  {paginaSegura} / {totalPaginas}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                  disabled={paginaSegura >= totalPaginas}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-text-dim hover:bg-bg-3 hover:text-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Página siguiente"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

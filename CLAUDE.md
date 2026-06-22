@@ -143,7 +143,20 @@ El frontend llama: `supabase.rpc('crear_estudio_inicial', { p_denominacion: ...,
 - **Retorna el estudio ID efectivo** (siempre string, nunca void)
 
 ### `progresoService.recalcularProgreso(estudioId)`
-Hace **5 queries en paralelo** a `estudios`, `documentos`, `checklist_tecnico`, `configuracion_modulos` y `progreso_roadmap`. Calcula flags localmente y hace UPSERT en `progreso_roadmap`. Siempre retorna un `ProgresoRoadmap` válido aunque el UPSERT falle.
+Hace **6 queries en paralelo** a `estudios`, `documentos`, `checklist_tecnico`, `configuracion_modulos`, `progreso_roadmap` y `altas`. Calcula flags localmente y hace UPSERT en `progreso_roadmap`. Siempre retorna un `ProgresoRoadmap` válido aunque el UPSERT falle.
+
+**Auto-cura de pasos** — los pasos NO se confían del cache `progreso_roadmap.pasos`; se derivan del estado real de la DB. Esto hace que el progreso sea idempotente y resista race conditions entre `marcarPasoCompleto` (async, sin await) y la recarga del context:
+
+| Paso | Derivado de |
+|------|-------------|
+| 1 | Existe el row en `estudios` |
+| 2 | `identidadCompleta` (6 campos obligatorios del estudio no vacíos) |
+| 3 | Hay `skillIds` configurados o algún `documento` cargado |
+| 4 | `checklistCompleto` (5 checks en true) |
+| 5 | Sin derivación — se marca manualmente desde `RevisionFinal` |
+| 6 | Existe un row en `altas` con estado `agendada` o `realizada` |
+
+Además limpia el `pasos[7]` legacy (residuo del bug donde `marcarAltaAgendada` marcaba paso 7 en vez de 6).
 
 **Fórmula de `desbloqueado`:** `identidadCompleta && checklistCompleto`
 (los modelos ya no bloquean el agendamiento — si faltan, se avisa pero se puede continuar)
@@ -156,6 +169,18 @@ Hace **5 queries en paralelo** a `estudios`, `documentos`, `checklist_tecnico`, 
 
 ---
 
+## AuthContext
+
+Estado de auth (`usuario`, `loading`, `signIn`, `signUp`, `logout`, `refreshPerfil`). Bootstrap con `supabase.auth.getSession()` + `onAuthStateChange`.
+
+**Timeout de 5s sobre `getSession()`**: si la sesión está colgada por refresh token expirado o lock interno de `supabase-js` (bug conocido tras inactividad larga), se fuerza `signOut()` y se baja `loading` → el user ve el Login en vez de spinner infinito.
+
+**`loading` solo baja después de tener perfil**: el evento `INITIAL_SESSION` de `onAuthStateChange` actúa como red de seguridad, pero solo dispara `finish()` después de `fetchPerfil`. Sin esto, había un flash de Login al refrescar (loading=false con usuario=null mientras el perfil se resolvía).
+
+**Flag `settled`**: previene que `init()` y `INITIAL_SESSION` ejecuten `setLoading(false)` dos veces.
+
+---
+
 ## RoadmapContext
 
 Estado central del wizard. Carga todo en paralelo al montar (`useEffect` sobre `activeEstudioId`).
@@ -164,10 +189,14 @@ Estado central del wizard. Carga todo en paralelo al montar (`useEffect` sobre `
 
 **Carga inicial usa `recalcularProgreso`**, no `getProgreso`, para evitar progreso cacheado obsoleto.
 
+**`pasoActivo` nunca retrocede**: el `useEffect` que recarga datos cuando cambia `activeEstudioId` solo bumpea `pasoActivo` hacia adelante (`setPasoActivo(prev => Math.max(prev, ultimo + 1))`). Importante porque al crear el primer estudio se dispara una recarga y, si no fuera por esto, te tiraría de vuelta al paso anterior.
+
+**`completarPaso(n)` tolera `progreso === null`**: si todavía no hay row en `progreso_roadmap` (caso usuario nuevo en Bienvenida), construye un objeto inicial vacío y marca el paso. Sin esto, el check del paso 1 no se mostraba hasta el siguiente reload.
+
 **`marcarAltaAgendada(calendlyUri)`:**
 1. Llama `altaService.reservarAlta`
 2. Actualiza estado local `alta`
-3. Llama `completarPaso(6)`
+3. Llama `completarPaso(6)` (no 7 — el bug histórico era ese)
 
 ---
 
@@ -261,6 +290,8 @@ El popup de advertencia filtra: `skill.modelos[0]` existe y `docs.length === 0`.
 
 **Tamaños de texto:** bumpeados en `@theme` (~1px por nivel). `text-sm` = 15px, `text-xs` = 13px, `text-base` = 17px.
 
+**Autofill de Chrome en inputs dark**: en `src/index.css` hay una regla para `:-webkit-autofill` + `:autofill` que pinta el fondo con `#1a1a20` (color de `bg-bg-3`, el wrapper estándar de inputs) y el texto con `#e8e8f0` vía `-webkit-text-fill-color`. Sin esto el autofill de Chrome dejaba un rectángulo azul/gris feo dentro de los inputs.
+
 ---
 
 ## CalendarBooking (Calendly)
@@ -330,6 +361,18 @@ interface ProgresoRoadmap {
 
 ---
 
+## Tablas admin — paginación y conteos
+
+`ListaClientes.tsx` y `Solicitudes.tsx` usan **paginación client-side** con `PAGE_SIZE = 20`. Se traen todas las filas y se cortan en memoria con `.slice(desde, hasta)`. No hay paginación server-side (`.range()`) todavía — cuando crezca el volumen, migrar a server-side.
+
+**Conteos:**
+- `ListaClientes`: muestra `"X clientes activos"` en el header, y si hay búsqueda agrega `"· N en la búsqueda"`.
+- `Solicitudes`: muestra los 3 estados con sus colores (warning/teal/coral) en el header, y un badge con el count al lado de cada tab. Los counts se traen con `select('id', { count: 'exact', head: true })` (3 queries paralelas, sin descargar rows) y se actualizan en cliente al aprobar/rechazar.
+
+**Estructura visual de filas** (ambas tablas): grid de columnas fijas en vez de `flex justify-between`, para que filas con nombres/emails de largo distinto queden alineadas verticalmente entre sí. Cualquier columna fija que tenga texto variable usa `tabular-nums`.
+
+---
+
 ## Progreso en la vista admin
 
 **Problema:** `ListaClientes` y `FichaCliente` leían el progreso cacheado del join con `progreso_roadmap`, que podía estar desactualizado si el UPSERT del cliente falló.
@@ -340,7 +383,7 @@ interface ProgresoRoadmap {
 
 ---
 
-## Estado del backend (verificado 2026-06-18)
+## Estado del backend (verificado 2026-06-21)
 
 **Tablas:** todas presentes con RLS habilitado ✅
 
@@ -355,3 +398,19 @@ interface ProgresoRoadmap {
 
 **Migraciones aplicadas:**
 - `fix_progreso_pasos_default_6_steps` — corrige el default de `progreso_roadmap.pasos` de 7 a 6 pasos
+
+**Wipe 2026-06-21:** se borraron todos los registros de prueba (auth.users, perfiles, estudios, documentos, configuracion_modulos, checklist_tecnico, progreso_roadmap, altas) excepto el admin `jorgeduje4@gmail.com` (id `43a8b629-4e16-453f-9990-18cc22b4afd8`). Storage `modelos` y `documentos` quedaron limpios (los `.emptyFolderPlaceholder` que crea el dashboard de Supabase también fueron eliminados).
+
+---
+
+## ⚠ Pendiente importante — Revisar estructura de skills y carpetas
+
+Una vez que estén definidas **todas** las skills finales y sus modelos requeridos (no las 13 actuales si cambian), hay que revisar y posiblemente reestructurar:
+
+1. **`src/data/skills.ts`** — el catálogo. Validar IDs, agrupaciones, qué skills llevan modelo (obligatorio/opcional) y cuáles no.
+2. **Carpetas en Storage** (`bucket: modelos`) — los nombres de carpeta están hardcodeados en `skills.ts` (`telegramas`, `demandas`, etc.). Si cambian las skills, hay que coordinar con `documentos.carpeta` (text en DB) y revisar que `recalcularProgreso` siga derivando paso 3 correctamente (`docList.length > 0` o `skillIds.length > 0`).
+3. **Archivos modelo por defecto (`modeloDefault`)** — campo definido en `ModeloRequerido` pero todavía sin URLs. Cuando se decidan los modelos canónicos, subir a Storage público y completar las URLs en `skills.ts`.
+4. **Mapping skill ↔ carpeta** — hoy es 1 skill → 1 modelo → 1 carpeta. Si alguna skill termina necesitando múltiples modelos, hay que extender `ModeloRequerido[]` y la lógica de progreso/checks en `ModulosConectores.tsx` y `recalcularProgreso`.
+5. **Bucket `documentos` (legacy)** — sigue existiendo pero sin uso. Decidir si se elimina del proyecto Supabase o se mantiene por compatibilidad histórica.
+
+Esto está pendiente hasta que el negocio cierre el catálogo definitivo de skills/modelos para producción.

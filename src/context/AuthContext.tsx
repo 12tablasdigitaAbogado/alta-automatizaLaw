@@ -40,24 +40,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const perfil = await fetchPerfil(session.user.id)
-        setUsuario(perfil)
-      }
-      setLoading(false)
-    })
+    let cancelled = false
+    let settled = false
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const finish = () => {
+      if (cancelled || settled) return
+      settled = true
+      setLoading(false)
+    }
+
+    // Si getSession() se cuelga por un refresh token trabado o lock interno
+    // de supabase-js (pasa tras horas/días de inactividad), forzamos salir
+    // del estado de loading y mostramos el login en vez de un spinner eterno.
+    const timeoutId = window.setTimeout(async () => {
+      if (cancelled || settled) return
+      try { await supabase.auth.signOut() } catch { /* noop */ }
+      setUsuario(null)
+      finish()
+    }, 5000)
+
+    const init = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (cancelled) return
+        if (error || !session) {
+          setUsuario(null)
+          return
+        }
+        const perfil = await fetchPerfil(session.user.id)
+        if (cancelled) return
+        if (!perfil) {
+          await supabase.auth.signOut()
+          setUsuario(null)
+          return
+        }
+        setUsuario(perfil)
+      } catch {
+        if (!cancelled) setUsuario(null)
+      } finally {
+        window.clearTimeout(timeoutId)
+        finish()
+      }
+    }
+
+    init()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'TOKEN_REFRESHED' && !session) {
+        await supabase.auth.signOut()
+        setUsuario(null)
+        return
+      }
       if (session) {
         const perfil = await fetchPerfil(session.user.id)
         setUsuario(perfil)
       } else {
         setUsuario(null)
       }
+      if (event === 'INITIAL_SESSION') {
+        window.clearTimeout(timeoutId)
+        finish()
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {

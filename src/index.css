@@ -108,6 +108,29 @@ body {
   color: #5a5a6a;
 }
 
+@keyframes autofill-fix {
+  to {
+    background: transparent;
+    color: #e8e8f0;
+  }
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+input:autofill,
+textarea:-webkit-autofill,
+textarea:autofill,
+select:-webkit-autofill,
+select:autofill {
+  -webkit-box-shadow: 0 0 0 1000px #1a1a20 inset !important;
+  box-shadow: 0 0 0 1000px #1a1a20 inset !important;
+  -webkit-text-fill-color: #e8e8f0 !important;
+  caret-color: #e8e8f0 !important;
+  transition: background-color 9999s ease-in-out 0s !important;
+}
+
 .btn-primary {
   display: flex;
   align-items: center;

@@ -90,8 +90,10 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
       setProgreso(prog)
       setAlta(alt)
       const pasos = prog.pasos
-      const ultimo = [1, 2, 3, 4, 5, 6, 7].reverse().find(p => pasos[p] === 'completo')
-      if (ultimo && ultimo < 7) setPasoActivo(ultimo + 1)
+      const ultimo = [1, 2, 3, 4, 5, 6].reverse().find(p => pasos[p] === 'completo')
+      if (ultimo && ultimo < 6) {
+        setPasoActivo(prev => Math.max(prev, ultimo + 1))
+      }
     }).finally(() => setLoading(false))
   }, [activeEstudioId])
 
@@ -140,18 +142,26 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
   const completarPaso = (paso: number) => {
     if (activeEstudioId) marcarPasoCompleto(activeEstudioId, paso)
     setProgreso(prev => {
-      if (!prev) return prev
-      const pasos = { ...prev.pasos, [paso]: 'completo' as const }
+      const base: ProgresoRoadmap = prev ?? {
+        usuarioId: usuario?.id ?? '',
+        pasos: { 1: 'pendiente', 2: 'pendiente', 3: 'pendiente', 4: 'pendiente', 5: 'pendiente', 6: 'pendiente' },
+        porcentaje: 0,
+        identidadCompleta: false,
+        tieneDocumentos: false,
+        checklistCompleto: false,
+        desbloqueado: false,
+      }
+      const pasos = { ...base.pasos, [paso]: 'completo' as const }
       const pasosBase = [1, 2, 3, 4, 5, 6]
       const completados = pasosBase.filter(p => pasos[p] === 'completo').length
-      return { ...prev, pasos, porcentaje: Math.round((completados / pasosBase.length) * 100) }
+      return { ...base, pasos, porcentaje: Math.round((completados / pasosBase.length) * 100) }
     })
   }
 
   const marcarAltaAgendada = async (calendlyUri: string) => {
     const nueva = await altaService.reservarAlta(activeEstudioId, '', calendlyUri)
     setAlta(nueva)
-    completarPaso(7)
+    completarPaso(6)
   }
 
   return (

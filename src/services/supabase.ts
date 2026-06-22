@@ -298,12 +298,14 @@ async function computeYGuardar(estudioId: string): Promise<ProgresoRoadmap> {
     { data: chkRow },
     { data: cfgRow },
     { data: progresoRow },
+    { data: altaRow },
   ] = await Promise.all([
     supabase.from('estudios').select('denominacion, abogado_responsable, matricula, domicilio, telefono, email_estudio, perfil_id, contexto').eq('id', estudioId).single(),
     supabase.from('documentos').select('carpeta').eq('estudio_id', estudioId),
     supabase.from('checklist_tecnico').select('*').eq('estudio_id', estudioId).single(),
     supabase.from('configuracion_modulos').select('modulos').eq('estudio_id', estudioId).single(),
     supabase.from('progreso_roadmap').select('pasos').eq('estudio_id', estudioId).single(),
+    supabase.from('altas').select('estado').eq('estudio_id', estudioId).maybeSingle(),
   ])
 
   const identidadCompleta = !!(
@@ -336,6 +338,20 @@ async function computeYGuardar(estudioId: string): Promise<ProgresoRoadmap> {
   const desbloqueado = identidadCompleta && checklistCompleto
 
   const pasos = (progresoRow?.pasos as ProgresoRoadmap['pasos']) ?? { ...PROGRESO_DEFAULT_PASOS }
+  // Auto-curar pasos derivables del estado real (no confiar en el cache):
+  // - paso 1 (Bienvenida): si existe el estudio
+  // - paso 2 (DatosEstudio): si la identidad está completa
+  // - paso 3 (Skills/modelos): si hay configuración guardada o algún documento
+  // - paso 4 (Checklist): si el checklist está completo
+  // - paso 6 (AgendarAlta): si hay alta agendada/realizada
+  // (paso 5 RevisionFinal no guarda datos, queda como marcado manual)
+  if (estudioRow) pasos[1] = 'completo'
+  if (identidadCompleta) pasos[2] = 'completo'
+  if (skillIds.length > 0 || docList.length > 0) pasos[3] = 'completo'
+  if (checklistCompleto) pasos[4] = 'completo'
+  const altaAgendada = altaRow?.estado === 'agendada' || altaRow?.estado === 'realizada'
+  if (altaAgendada) pasos[6] = 'completo'
+  delete (pasos as Record<number, unknown>)[7]
   const pasosBase = [1, 2, 3, 4, 5, 6]
   const completados = pasosBase.filter(p => pasos[p] === 'completo').length
   const porcentaje = Math.round((completados / pasosBase.length) * 100)

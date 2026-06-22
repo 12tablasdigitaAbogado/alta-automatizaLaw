@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, ChevronRight, Users } from 'lucide-react'
+import { Search, ChevronRight, ChevronLeft, Users } from 'lucide-react'
 import type { ClienteResumen } from '@/types'
 import { usuarioService, progresoService } from '@/services'
 import { LABELS_ESTADO_ALTA, cn } from '@/lib/utils'
+
+const PAGE_SIZE = 20
 
 const ESTADO_COLORES = {
   pendiente: 'text-text-faint bg-bg-3 border-border',
@@ -15,6 +17,9 @@ export default function ListaClientes() {
   const [clientes, setClientes] = useState<ClienteResumen[]>([])
   const [busqueda, setBusqueda] = useState('')
   const [loading, setLoading] = useState(true)
+  const [pagina, setPagina] = useState(1)
+
+  useEffect(() => { setPagina(1) }, [busqueda])
 
   useEffect(() => {
     usuarioService.listClientes().then(async data => {
@@ -32,11 +37,18 @@ export default function ListaClientes() {
     })
   }, [])
 
-  const filtrados = clientes.filter(c =>
+  const filtrados = useMemo(() => clientes.filter(c =>
     c.usuario.estado === 'activo' &&
     (c.estudio.denominacion.toLowerCase().includes(busqueda.toLowerCase()) ||
     c.usuario.email.toLowerCase().includes(busqueda.toLowerCase()))
-  )
+  ), [clientes, busqueda])
+
+  const totalActivos = useMemo(() => clientes.filter(c => c.usuario.estado === 'activo').length, [clientes])
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE))
+  const paginaSegura = Math.min(pagina, totalPaginas)
+  const desde = (paginaSegura - 1) * PAGE_SIZE
+  const hasta = Math.min(desde + PAGE_SIZE, filtrados.length)
+  const visibles = filtrados.slice(desde, hasta)
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
@@ -48,7 +60,12 @@ export default function ListaClientes() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-text">Clientes</h1>
-            <p className="text-sm text-text-dim">{clientes.length} estudios registrados</p>
+            <p className="text-sm text-text-dim">
+              {totalActivos} {totalActivos === 1 ? 'cliente activo' : 'clientes activos'}
+              {busqueda && filtrados.length !== totalActivos && (
+                <span className="text-text-faint"> · {filtrados.length} en la búsqueda</span>
+              )}
+            </p>
           </div>
         </div>
       </div>
@@ -78,35 +95,35 @@ export default function ListaClientes() {
         <div className="bg-bg-card border border-border rounded-2xl overflow-hidden">
           {/* Tabla — scrollable en mobile */}
           <div className="overflow-x-auto">
-            <div className="min-w-[560px]">
-              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-0 text-xs text-text-faint uppercase tracking-widest px-5 py-3 border-b border-border">
+            <div className="min-w-[680px]">
+              <div className="grid grid-cols-[2fr_140px_140px_1.5fr_32px] gap-4 text-xs text-text-faint uppercase tracking-widest px-5 py-3 border-b border-border">
                 <span>Cliente</span>
                 <span>Avance</span>
                 <span>Estado</span>
                 <span>Contacto</span>
                 <span />
               </div>
-              {filtrados.map(({ usuario, estudio, progreso, alta }) => (
+              {visibles.map(({ usuario, estudio, progreso, alta }) => (
                 <Link
                   key={usuario.id}
                   to={`/admin/clientes/${usuario.id}`}
-                  className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-0 px-5 py-4 items-center border-b border-border/50 hover:bg-bg-3 transition-colors group last:border-0"
+                  className="grid grid-cols-[2fr_140px_140px_1.5fr_32px] gap-4 px-5 py-4 items-center border-b border-border/50 hover:bg-bg-3 transition-colors group last:border-0"
                 >
                   {/* Cliente */}
-                  <div>
-                    <p className="text-sm font-medium text-text">{usuario.nombre}</p>
-                    <p className="text-sm text-text-faint mt-0.5">{estudio.denominacion}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-text truncate">{usuario.nombre}</p>
+                    <p className="text-sm text-text-faint mt-0.5 truncate">{estudio.denominacion}</p>
                   </div>
 
                   {/* Avance */}
                   <div className="flex items-center gap-2">
-                    <div className="w-16 h-1.5 bg-bg rounded-full overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-bg rounded-full overflow-hidden">
                       <div
                         className="h-full bg-success rounded-full transition-all"
                         style={{ width: `${progreso.porcentaje}%` }}
                       />
                     </div>
-                    <span className={cn('text-sm font-medium tabular-nums', progreso.porcentaje === 100 ? 'text-success' : 'text-text-dim')}>
+                    <span className={cn('text-sm font-medium tabular-nums shrink-0 w-10 text-right', progreso.porcentaje === 100 ? 'text-success' : 'text-text-dim')}>
                       {progreso.porcentaje}%
                     </span>
                   </div>
@@ -114,7 +131,7 @@ export default function ListaClientes() {
                   {/* Estado alta */}
                   <div>
                     <span className={cn(
-                      'text-xs px-2.5 py-1 rounded-full border font-medium',
+                      'inline-block text-xs px-2.5 py-1 rounded-full border font-medium',
                       ESTADO_COLORES[alta.estado]
                     )}>
                       {LABELS_ESTADO_ALTA[alta.estado]}
@@ -122,14 +139,46 @@ export default function ListaClientes() {
                   </div>
 
                   {/* Email */}
-                  <span className="text-sm text-text-faint truncate max-w-32">{usuario.email}</span>
+                  <span className="text-sm text-text-faint truncate min-w-0">{usuario.email}</span>
 
                   {/* Arrow */}
-                  <ChevronRight className="w-4 h-4 text-text-faint group-hover:text-teal transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-text-faint group-hover:text-teal transition-colors justify-self-end" />
                 </Link>
               ))}
             </div>
           </div>
+
+          {/* Paginación */}
+          {filtrados.length > 0 && (
+            <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-border bg-bg-card">
+              <p className="text-xs text-text-faint">
+                {desde + 1}–{hasta} de {filtrados.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPagina(p => Math.max(1, p - 1))}
+                  disabled={paginaSegura <= 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-text-dim hover:bg-bg-3 hover:text-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-sm text-text-dim tabular-nums px-3">
+                  {paginaSegura} / {totalPaginas}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                  disabled={paginaSegura >= totalPaginas}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-text-dim hover:bg-bg-3 hover:text-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Página siguiente"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
