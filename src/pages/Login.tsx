@@ -145,13 +145,6 @@ export default function Login() {
           {submitting ? 'Cargando...' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
         </button>
       </form>
-
-      {mode === 'register' && (
-        <p className="text-center text-xs text-text-faint mt-4 leading-relaxed">
-          Tu cuenta queda pendiente de aprobación.<br />
-          Un operador la activará en breve.
-        </p>
-      )}
     </Screen>
   )
 }
