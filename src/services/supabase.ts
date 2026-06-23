@@ -430,19 +430,20 @@ export const altaService: AltaService = {
       .eq('estudio_id', estudioId)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
     if (!data) return null
     return rowToAlta(data)
   },
 
-  async reservarAlta(estudioId, fecha, horaOLink) {
-    const isLink = horaOLink.startsWith('http') || horaOLink === ''
+  async reservarAlta(estudioId, fecha, bookingRef) {
+    const isHttpLink = bookingRef.startsWith('http')
     const { data, error } = await supabase
       .from('altas')
       .insert({
         estudio_id: estudioId,
         ...(fecha && { fecha }),
-        ...(isLink ? { link_meet: horaOLink || null } : { hora_inicio: horaOLink }),
+        ...(isHttpLink ? { link_meet: bookingRef } : {}),
+        ...(bookingRef && !isHttpLink ? { notas: bookingRef } : {}),
         estado: 'agendada',
       })
       .select()

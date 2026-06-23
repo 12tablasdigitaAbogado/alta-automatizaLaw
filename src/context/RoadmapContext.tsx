@@ -33,7 +33,7 @@ interface RoadmapContextValue {
   saveChecklist: (data: ChecklistTecnico) => Promise<void>
   completarPaso: (paso: number) => void
   refrescarProgreso: () => Promise<void>
-  marcarAltaAgendada: (calendlyUri: string) => Promise<void>
+  marcarAltaAgendada: (bookingRef: string) => Promise<void>
 }
 
 const RoadmapContext = createContext<RoadmapContextValue | null>(null)
@@ -158,8 +158,8 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  const marcarAltaAgendada = async (calendlyUri: string) => {
-    const nueva = await altaService.reservarAlta(activeEstudioId, '', calendlyUri)
+  const marcarAltaAgendada = async (bookingRef: string) => {
+    const nueva = await altaService.reservarAlta(activeEstudioId, '', bookingRef)
     setAlta(nueva)
     completarPaso(6)
   }

@@ -294,23 +294,60 @@ El popup de advertencia filtra: `skill.modelos[0]` existe y `docs.length === 0`.
 
 ---
 
-## CalendarBooking (Calendly)
+## Agendamiento del cliente (paso 6 — GHL Booking + Form)
 
-**Problema de montaje:** Calendly auto-inicializa al cargar el script, pero cuando el componente se monta después de que el script ya cargó (SPA), el widget no aparece.
+Reemplazamos Calendly por **GoHighLevel (LeadConnector)**. Dos iframes embebidos:
 
-**Solución:** usar `window.Calendly.initInlineWidget()` manualmente con un `useRef` limpiando `innerHTML` antes de inicializar.
+### `components/shared/GhlBooking.tsx`
+- Calendar ID: `MCiMeiA5XZrpfOh7XCSX` — **placeholder de prueba, reemplazar por el calendario real del operador para producción**
+- Carga el script `https://link.msgsndr.com/js/form_embed.js` una sola vez (guard contra duplicados)
+- El `iframe.id` se genera con formato `<BOOKING_ID>_<timestamp>` — `form_embed.js` busca ese patrón para auto-resizear vía postMessage `highlevel.setHeight`
+- `minHeight: 1100` como piso por si el resize tarda
 
-**Detección de booking:** escuchar `postMessage` desde Calendly:
-```tsx
-if (e.data?.event === 'calendly.event_scheduled') {
-  const uri = e.data?.payload?.event?.uri as string
-  marcarAltaAgendada(uri)
-}
+### `components/shared/GhlForm.tsx`
+- Form ID: `r6H5PT5aGzfofYhDjDRz` — **placeholder ("Lista de espera Agentes"), reemplazar por el form real del cliente**
+- Render con todos los `data-*` attrs que espera `form_embed.js`
+- Se monta dentro de la rama `yaAgendado` de `AgendarAlta.tsx`, debajo del bloque "¡Reunión agendada!"
+
+### Detección de booking — postMessage
+
+GHL widget "Neo" **no** documenta API pública, pero al confirmar el turno el iframe postea al parent:
+
+```js
+e.data = ["msgsndr-booking-complete", { fingerprint: "<id>", calendarId: "<id>" }]
+e.origin = "https://api.leadconnectorhq.com"
 ```
 
-**Limitación:** no tenemos fecha/hora del turno en el frontend. La URI del evento se guarda en `altas.notas`. Para mostrar fecha y hora se necesita webhook Calendly → n8n/Edge Function → Supabase UPDATE en `altas`.
+`AgendarAlta.tsx` escucha ese array exacto, filtra por origen GHL (`leadconnectorhq.com` / `msgsndr.com` / `gohighlevel.com`), arma un JSON con `fingerprint`+`calendarId`+`ts` y llama `marcarAltaAgendada(ref)`. El JSON se guarda en `altas.notas`. Hay un `useRef` (`bookingFiredRef`) para evitar doble INSERT si el evento se dispara dos veces.
 
-**Agenda admin (`Agenda.tsx`):** embed de Google Calendar vía `VITE_GOOGLE_CALENDAR_EMBED_URL`. Para que todos los operadores vean los eventos, el calendario debe estar marcado como **público** en Google Calendar → Configuración → Permisos de acceso.
+> **Nota importante:** el widget también hace un POST `bookingCompleted` a `backend.leadconnectorhq.com/calendars/booking-analytics/event/submit` desde **adentro del iframe** — ese request no es visible desde la página padre por cross-origin. Solo el `msgsndr-booking-complete` postMessage llega al parent. Si ese mensaje cambia o desaparece en futuras versiones del widget Neo, el plan B es **webhook GHL "Appointment Booked" → Supabase Edge Function** que haga el UPSERT en `altas` matcheando por contacto/email.
+
+### `altaService.reservarAlta(estudioId, fecha, bookingRef)`
+
+Reescrito tras descubrir que `hora_inicio` es `time` en DB y rechazaba strings arbitrarios:
+- Si `bookingRef` empieza con `http` → `link_meet`
+- Si no, va a **`notas`** (no a `hora_inicio`)
+- `fecha` puede ser `''` (caso GHL: no tenemos fecha en el frontend)
+
+### `altaService.getAlta`
+
+Usa `.maybeSingle()` (antes `.single()` devolvía 406 cuando aún no había alta).
+
+### Agenda admin (`Agenda.tsx`)
+
+Embed de Google Calendar vía `VITE_GOOGLE_CALENDAR_EMBED_URL`. **Reemplazar por el calendario real del operador para producción** — debe estar marcado como **público** en Google Calendar → Configuración → Permisos de acceso para que todos los operadores vean los eventos.
+
+---
+
+## ⚠ Pendiente para producción — IDs y URLs reales
+
+Hoy quedan 3 placeholders de prueba que hay que cambiar antes de salir a producción:
+
+| Qué | Dónde | Valor actual (placeholder) | Acción |
+|-----|-------|----------------------------|--------|
+| Calendario real del **operador** (vista admin) | `.env` → `VITE_GOOGLE_CALENDAR_EMBED_URL`, consumido en `pages/admin/Agenda.tsx` | URL de calendario de prueba | Reemplazar por el embed del Google Calendar real del equipo de operadores, marcado como **público** |
+| Calendario real del **cliente** (paso 6 — booking GHL) | `components/shared/GhlBooking.tsx` → constante `BOOKING_ID` | `MCiMeiA5XZrpfOh7XCSX` | Reemplazar por el ID del calendario real en GHL. Verificar que el listener de `msgsndr-booking-complete` siga llegando con el nuevo calendario |
+| Formulario real del **cliente** (paso 6 — luego del booking) | `components/shared/GhlForm.tsx` → constante `FORM_ID` | `r6H5PT5aGzfofYhDjDRz` ("Lista de espera Agentes" — form de prueba) | Reemplazar por el form real del cliente. Si el form cambia de tamaño, ajustar el `height: 2400` del iframe |
 
 ---
 
@@ -355,7 +392,7 @@ interface ProgresoRoadmap {
 
 1. **403 en UPSERTs de `progreso_roadmap` / `checklist_tecnico`:** ocurre a veces desde el lado cliente, causa no definitivamente identificada. El progreso se calcula localmente en el cliente así que el UX no se rompe, pero el cache en DB puede quedar desactualizado. **Mitigación:** el operador siempre recalcula al abrir `FichaCliente` o `ListaClientes` (ver abajo), lo que actualiza el cache desde el lado del operador donde las políticas RLS funcionan sin problemas.
 
-2. **Fecha/hora del turno de Calendly:** la URI del evento se guarda en `altas.notas`. Para mostrar fecha y hora en la UI se necesita un webhook Calendly → n8n/Edge Function → Supabase UPDATE en `altas`.
+2. **Fecha/hora del turno de GHL:** el frontend solo recibe `fingerprint`+`calendarId` (no fecha/hora). Esos datos se guardan en `altas.notas` como JSON. Para mostrar fecha y hora en la UI se necesita un webhook GHL "Appointment Booked" → Edge Function → UPDATE en `altas`.
 
 3. **Modelos por defecto:** campo `modeloDefault` definido en `ModeloRequerido` pero sin URLs aún. Cargar archivos en Supabase Storage y completar el campo en `skills.ts`.
 
@@ -398,6 +435,7 @@ interface ProgresoRoadmap {
 
 **Migraciones aplicadas:**
 - `fix_progreso_pasos_default_6_steps` — corrige el default de `progreso_roadmap.pasos` de 7 a 6 pasos
+- `handle_new_user_auto_activo` — el trigger `handle_new_user` ahora inserta `perfiles.estado = 'activo'` (antes `'pendiente'`). Los nuevos registros entran ya aprobados y van directo al wizard. La pantalla `PendingScreen` de `RoadmapLayout.tsx` solo bloquea ahora a usuarios con estado `'rechazado'`. La tab `Solicitudes` sigue existiendo por si en el futuro se vuelve a habilitar aprobación manual
 
 **Wipe 2026-06-21:** se borraron todos los registros de prueba (auth.users, perfiles, estudios, documentos, configuracion_modulos, checklist_tecnico, progreso_roadmap, altas) excepto el admin `jorgeduje4@gmail.com` (id `43a8b629-4e16-453f-9990-18cc22b4afd8`). Storage `modelos` y `documentos` quedaron limpios (los `.emptyFolderPlaceholder` que crea el dashboard de Supabase también fueron eliminados).
 

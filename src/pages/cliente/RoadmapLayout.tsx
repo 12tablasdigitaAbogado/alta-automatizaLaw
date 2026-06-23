@@ -129,7 +129,7 @@ function PendingScreen() {
 export default function RoadmapLayout() {
   const { estado } = useAuth()
 
-  if (estado === 'pendiente' || estado === 'rechazado') {
+  if (estado === 'rechazado') {
     return <PendingScreen />
   }
 

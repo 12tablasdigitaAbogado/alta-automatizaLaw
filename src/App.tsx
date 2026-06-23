@@ -7,6 +7,7 @@ import ListaClientes from '@/pages/admin/ListaClientes'
 import FichaCliente from '@/pages/admin/FichaCliente'
 import Agenda from '@/pages/admin/Agenda'
 import Solicitudes from '@/pages/admin/Solicitudes'
+import TestGHL from '@/pages/TestGHL'
 import { useAuth } from '@/context/AuthContext'
 import { Zap } from 'lucide-react'
 
@@ -35,6 +36,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
+      <Route path="/test-ghl" element={<TestGHL />} />
       <Route
         path="/cliente/onboarding"
         element={

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Lock, Unlock, CalendarDays, PartyPopper, CalendarCheck } from 'lucide-react'
-import { CalendarBooking } from '@/components/shared/CalendarBooking'
+import { GhlBooking } from '@/components/shared/GhlBooking'
+import { GhlForm } from '@/components/shared/GhlForm'
 import { useRoadmap } from '@/context/RoadmapContext'
 import { cn } from '@/lib/utils'
 
@@ -11,6 +12,7 @@ export function AgendarAlta() {
 
   const [animando, setAnimando] = useState(false)
   const [mostrado, setMostrado] = useState(false)
+  const bookingFiredRef = useRef(false)
 
   useEffect(() => {
     if (desbloqueado && !mostrado) {
@@ -21,17 +23,36 @@ export function AgendarAlta() {
     }
   }, [desbloqueado, mostrado])
 
-  // Escuchar evento de Calendly cuando el usuario confirma un turno
+  // GHL emite al parent un mensaje con forma de tupla
+  // ["msgsndr-booking-complete", { fingerprint, calendarId }]
+  // cuando el usuario confirma su turno en el widget Neo.
   useEffect(() => {
+    if (yaAgendado) return
     const handler = (e: MessageEvent) => {
-      if (e.data?.event === 'calendly.event_scheduled') {
-        const uri = (e.data?.payload?.event?.uri as string) ?? ''
-        marcarAltaAgendada(uri)
-      }
+      const origin = (e.origin || '').toLowerCase()
+      const fromGhl =
+        origin.includes('leadconnectorhq.com') ||
+        origin.includes('msgsndr.com') ||
+        origin.includes('gohighlevel.com')
+      if (!fromGhl) return
+
+      const data = e.data
+      if (!Array.isArray(data) || data[0] !== 'msgsndr-booking-complete') return
+      if (bookingFiredRef.current) return
+      bookingFiredRef.current = true
+
+      const payload = data[1] ?? {}
+      const ref = JSON.stringify({
+        source: 'ghl',
+        fingerprint: payload.fingerprint,
+        calendarId: payload.calendarId,
+        ts: Date.now(),
+      })
+      marcarAltaAgendada(ref)
     }
     window.addEventListener('message', handler)
     return () => window.removeEventListener('message', handler)
-  }, [marcarAltaAgendada])
+  }, [marcarAltaAgendada, yaAgendado])
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -99,8 +120,18 @@ export function AgendarAlta() {
           </div>
 
           <p className="text-sm text-text-dim text-center">
-            ¿Necesitás cambiar el horario? Usá el link del email de Calendly para reprogramar.
+            ¿Necesitás cambiar el horario? Usá el link del email de confirmación para reprogramar.
           </p>
+
+          <div className="pt-2">
+            <h2 className="text-sm font-semibold text-text mb-3">
+              Un último paso: completá este formulario
+            </h2>
+            <p className="text-sm text-text-dim mb-4">
+              Nos ayuda a preparar tu reunión de alta con todo el contexto necesario.
+            </p>
+            <GhlForm />
+          </div>
         </div>
       ) : desbloqueado ? (
         /* Estado: desbloqueado, aún no agendó */
@@ -136,7 +167,7 @@ export function AgendarAlta() {
             </ul>
           </div>
 
-          <CalendarBooking />
+          <GhlBooking />
         </>
       ) : (
         /* Estado: bloqueado */
