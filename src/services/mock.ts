@@ -78,6 +78,7 @@ export const documentoService: DocumentoService = {
     if (!documentosState[estudioId]) documentosState[estudioId] = []
     documentosState[estudioId].push(doc)
     await recalcularYGuardar(estudioId)
+    return doc
   },
   async removeDocumento(estudioId, docId) {
     await delay()

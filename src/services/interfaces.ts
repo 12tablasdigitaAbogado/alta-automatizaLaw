@@ -18,7 +18,7 @@ export interface EstudioService {
 
 export interface DocumentoService {
   listDocumentos(estudioId: string): Promise<Documento[]>
-  addDocumento(estudioId: string, doc: Documento): Promise<void>
+  addDocumento(estudioId: string, doc: Documento): Promise<Documento>
   removeDocumento(estudioId: string, docId: string): Promise<void>
 }
 

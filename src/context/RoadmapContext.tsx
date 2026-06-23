@@ -110,8 +110,8 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
   }
 
   const addDocumento = async (doc: Documento) => {
-    await documentoService.addDocumento(activeEstudioId, doc)
-    setDocumentos(prev => [...prev, doc])
+    const saved = await documentoService.addDocumento(activeEstudioId, doc)
+    setDocumentos(prev => [...prev, saved])
     await refrescarProgreso()
   }
 

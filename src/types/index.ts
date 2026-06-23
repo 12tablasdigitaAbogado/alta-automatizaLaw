@@ -32,6 +32,7 @@ export interface Documento {
   nombre: string
   tamano: number
   fecha: string
+  storagePath?: string
   archivoLocal?: File
 }
 

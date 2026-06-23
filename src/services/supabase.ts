@@ -37,6 +37,7 @@ function rowToDocumento(row: any): Documento {
     nombre: row.nombre,
     tamano: row.tamano ?? 0,
     fecha: row.fecha ?? new Date().toISOString().slice(0, 10),
+    storagePath: row.storage_path ?? undefined,
   }
 }
 
@@ -152,9 +153,32 @@ export const documentoService: DocumentoService = {
 
   async addDocumento(estudioId, doc) {
     let storagePath = ''
+    let nombreCanonico = doc.nombre
 
     if (doc.archivoLocal) {
-      storagePath = `${estudioId}/${doc.carpeta}/${doc.id}-${doc.nombre}`
+      const extMatch = doc.nombre.match(/\.([a-zA-Z0-9]+)$/)
+      const ext = (extMatch ? extMatch[1] : 'bin').toLowerCase()
+
+      const { data: existentes } = await supabase
+        .from('documentos')
+        .select('nombre')
+        .eq('estudio_id', estudioId)
+        .eq('carpeta', doc.carpeta)
+
+      const prefijo = `modelo-${doc.carpeta}-`
+      const regex = new RegExp(`^${prefijo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\d+)\\.`)
+      let maxIdx = 0
+      for (const row of existentes ?? []) {
+        const m = (row.nombre as string).match(regex)
+        if (m) {
+          const n = parseInt(m[1], 10)
+          if (n > maxIdx) maxIdx = n
+        }
+      }
+
+      nombreCanonico = `${prefijo}${maxIdx + 1}.${ext}`
+      storagePath = `${estudioId}/${doc.carpeta}/${nombreCanonico}`
+
       const { error: uploadError } = await supabase.storage
         .from(STORAGE_BUCKET)
         .upload(storagePath, doc.archivoLocal, { upsert: false })
@@ -167,12 +191,14 @@ export const documentoService: DocumentoService = {
         id: doc.id,
         estudio_id: estudioId,
         carpeta: doc.carpeta,
-        nombre: doc.nombre,
+        nombre: nombreCanonico,
         tamano: doc.tamano,
         fecha: doc.fecha || new Date().toISOString().slice(0, 10),
         storage_path: storagePath,
       })
     if (error) throw new Error(error.message)
+
+    return { ...doc, nombre: nombreCanonico, storagePath, archivoLocal: undefined }
   },
 
   async removeDocumento(estudioId, docId) {
@@ -499,7 +525,7 @@ export const usuarioService: UsuarioService = {
           email_estudio, estilo_redaccion, pie_firma, contexto,
           configuracion_modulos ( modulos ),
           progreso_roadmap ( pasos, porcentaje, identidad_completa, tiene_documentos, checklist_completo, desbloqueado ),
-          documentos ( id, estudio_id, carpeta, nombre, tamano, fecha ),
+          documentos ( id, estudio_id, carpeta, nombre, tamano, fecha, storage_path ),
           altas ( id, estudio_id, fecha, hora_inicio, hora_fin, link_meet, estado, notas )
         )
       `)

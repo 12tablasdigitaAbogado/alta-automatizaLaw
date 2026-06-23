@@ -52,11 +52,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Si getSession() se cuelga por un refresh token trabado o lock interno
     // de supabase-js (pasa tras horas/días de inactividad), forzamos salir
     // del estado de loading y mostramos el login en vez de un spinner eterno.
-    const timeoutId = window.setTimeout(async () => {
+    // Importante: bajar loading PRIMERO y disparar signOut fire-and-forget —
+    // si esperáramos signOut, queda colgado sobre el mismo lock que getSession
+    // y el loader queda infinito igual. También limpiamos las keys sb-* de
+    // localStorage para romper el lock cuando el token está corrupto.
+    const timeoutId = window.setTimeout(() => {
       if (cancelled || settled) return
-      try { await supabase.auth.signOut() } catch { /* noop */ }
       setUsuario(null)
       finish()
+      try {
+        for (const key of Object.keys(window.localStorage)) {
+          if (key.startsWith('sb-')) window.localStorage.removeItem(key)
+        }
+      } catch { /* noop */ }
+      supabase.auth.signOut().catch(() => { /* noop */ })
     }, 5000)
 
     const init = async () => {

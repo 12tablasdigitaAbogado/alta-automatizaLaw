@@ -2,29 +2,25 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Copy, Check, CheckSquare, Square,
-  CalendarDays, FolderOpen, FileText, Puzzle, Download
+  CalendarDays, FolderOpen, FileText, Download
 } from 'lucide-react'
 import { zip, strToU8 } from 'fflate'
 import type { ClienteResumen } from '@/types'
 import { usuarioService, progresoService } from '@/services'
 import { supabase } from '@/lib/supabase'
-import { SKILL_MAP, carpetasDeSkills } from '@/data/skills'
+import { carpetasDeSkills } from '@/data/skills'
 import { LABELS_ESTADO_ALTA, LABEL_CARPETA, cn } from '@/lib/utils'
 
 const RUNBOOK: { id: string; label: string }[] = [
   { id: 'drive-estructura', label: 'Crear estructura de carpetas en Drive del estudio' },
   { id: 'drive-modelos', label: 'Subir modelos del cliente a sus carpetas de Drive' },
-  { id: 'contexto-md', label: 'Crear archivo .estudio/contexto.md con el ID de carpeta Drive' },
+  { id: 'perfil-md', label: 'Crear archivo perfil_estudio.md en la raíz del Drive' },
   { id: 'plugin-instalar', label: 'Instalar el plugin de skills jurídicas en Claude Desktop' },
-  { id: 'drive-conectar', label: 'Conectar el conector de Google Drive en Cowork' },
   { id: 'skill-validar', label: 'Probar una skill para validar que lee los modelos del Drive' },
 ]
 
-function generarContextoMd(data: ClienteResumen, driveId: string): string {
-  const { estudio, configuracion, contexto } = data
-  const skillNames = configuracion.skillIds
-    .map(id => SKILL_MAP[id]?.nombre ?? id)
-    .join(', ')
+function generarContextoMd(data: ClienteResumen): string {
+  const { estudio, contexto } = data
 
   const lineasContexto = Object.entries(contexto)
     .filter(([, v]) => v?.trim())
@@ -42,12 +38,6 @@ function generarContextoMd(data: ClienteResumen, driveId: string): string {
 ${estudio.estiloRedaccion ? `\n## Estilo de redacción\n${estudio.estiloRedaccion}` : ''}
 ${estudio.pieFirma ? `\n## Pie de firma\n${estudio.pieFirma}` : ''}
 ${lineasContexto ? `\n## Contexto laboral\n${lineasContexto}` : ''}
-## Skills activas
-${skillNames || '—'}
-
-## Carpeta Drive
-ID: ${driveId || '<ID_CARPETA_DRIVE>'}
-Ruta: https://drive.google.com/drive/folders/${driveId || '<ID>'}
 `.trim()
 }
 
@@ -56,7 +46,6 @@ export default function FichaCliente() {
   const [data, setData] = useState<ClienteResumen | null>(null)
   const [loading, setLoading] = useState(true)
   const [runbook, setRunbook] = useState<Record<string, boolean>>({})
-  const [driveId, setDriveId] = useState('')
   const [copiado, setCopiado] = useState(false)
   const [descargando, setDescargando] = useState(false)
 
@@ -81,7 +70,7 @@ export default function FichaCliente() {
 
   const copiarContexto = () => {
     if (!data) return
-    navigator.clipboard.writeText(generarContextoMd(data, driveId))
+    navigator.clipboard.writeText(generarContextoMd(data))
     setCopiado(true)
     setTimeout(() => setCopiado(false), 2000)
   }
@@ -92,11 +81,11 @@ export default function FichaCliente() {
     try {
       const nombre = data.estudio.denominacion || 'estudio'
       const archivos: Record<string, Uint8Array> = {
-        [`${nombre}/.estudio/contexto.md`]: strToU8(generarContextoMd(data, driveId)),
+        [`${nombre}/perfil_estudio.md`]: strToU8(generarContextoMd(data)),
       }
 
       await Promise.all(data.documentos.map(async doc => {
-        const storagePath = `${doc.estudioId}/${doc.carpeta}/${doc.id}-${doc.nombre}`
+        const storagePath = doc.storagePath ?? `${doc.estudioId}/${doc.carpeta}/${doc.id}-${doc.nombre}`
         const { data: blob, error } = await supabase.storage.from('modelos').download(storagePath)
         if (error || !blob) return
         archivos[`${nombre}/modelos/${doc.carpeta}/${doc.nombre}`] = new Uint8Array(await blob.arrayBuffer())
@@ -136,12 +125,7 @@ export default function FichaCliente() {
   }
 
   const { usuario, estudio, configuracion, documentos, progreso, alta } = data
-  const skillIds = configuracion.skillIds
-  const carpetas = carpetasDeSkills(skillIds)
-
-  // Árbol de Drive derivado de las skills
-  const subcarpetasModelos = carpetas.map(c => c.carpeta)
-  const subcarpetasSalidas = subcarpetasModelos.filter(c => c !== 'intake')
+  const carpetas = carpetasDeSkills(configuracion.skillIds)
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-5xl">
@@ -190,10 +174,10 @@ export default function FichaCliente() {
         {/* Columna principal */}
         <div className="space-y-5">
 
-          {/* 1. contexto.md */}
+          {/* 1. perfil_estudio.md */}
           <div className="bg-bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-text">contexto.md</h3>
+              <h3 className="text-sm font-semibold text-text">perfil_estudio.md</h3>
               <button
                 onClick={copiarContexto}
                 className={cn(
@@ -207,20 +191,8 @@ export default function FichaCliente() {
               </button>
             </div>
 
-            {/* ID de carpeta Drive editable */}
-            <div className="mb-3">
-              <label className="text-sm text-text-dim mb-1 block">ID de carpeta Drive del estudio</label>
-              <input
-                type="text"
-                value={driveId}
-                onChange={e => setDriveId(e.target.value)}
-                placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
-                className="w-full bg-bg-3 border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-text-faint outline-none focus:border-teal/50 transition-colors font-mono"
-              />
-            </div>
-
             <pre className="text-xs text-text-dim bg-bg-3 rounded-lg p-4 overflow-auto max-h-64 whitespace-pre-wrap leading-relaxed border border-border/50">
-              {generarContextoMd(data, driveId)}
+              {generarContextoMd(data)}
             </pre>
           </div>
 
@@ -232,12 +204,18 @@ export default function FichaCliente() {
             </div>
             <pre className="text-xs text-text-dim bg-bg-3 rounded-lg p-4 leading-relaxed border border-border/50 font-mono">
 {`${estudio.denominacion || '<ESTUDIO>'}/
-├── .estudio/
-│   └── contexto.md
+├── perfil_estudio.md
 ├── modelos/
-${subcarpetasModelos.map((c, i) => `│   ${i < subcarpetasModelos.length - 1 ? '├' : '└'}── ${c}/`).join('\n')}
-└── salidas/
-${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? '├' : '└'}── ${c}/`).join('\n')}`}
+│   ├── telegramas/
+│   ├── demandas/
+│   ├── escritos/
+│   ├── liquidaciones/
+│   ├── impugnaciones/
+│   ├── honorarios/
+│   └── comunicaciones/        (opcional)
+├── datos/
+│   └── escalas-cct/
+└── clientes/                  (vacía — una subcarpeta por cliente)`}
             </pre>
           </div>
 
@@ -290,32 +268,6 @@ ${subcarpetasSalidas.map((c, i) => `    ${i < subcarpetasSalidas.length - 1 ? '�
             )}
           </div>
 
-          {/* 4. Plugin a instalar */}
-          <div className="bg-bg-card border border-border rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Puzzle className="w-4 h-4 text-text-dim" />
-              <h3 className="text-sm font-semibold text-text">Plugin a instalar</h3>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-text-dim mb-1.5">Skills a activar</p>
-                {skillIds.length === 0 ? (
-                  <p className="text-sm text-text-faint italic">Sin skills seleccionadas</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {skillIds.map(id => (
-                      <span key={id} className="text-sm px-2.5 py-1 bg-teal/8 text-teal rounded-full border border-teal/15">
-                        {SKILL_MAP[id]?.nombre ?? id}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <p className="text-sm text-text-dim pt-1 border-t border-border">
-                El plugin es estático — el mismo archivo para todos los estudios. Lo que varía es la carpeta Drive conectada.
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Columna runbook */}
