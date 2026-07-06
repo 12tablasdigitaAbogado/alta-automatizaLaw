@@ -8,6 +8,7 @@ import FichaCliente from '@/pages/admin/FichaCliente'
 import Agenda from '@/pages/admin/Agenda'
 import Solicitudes from '@/pages/admin/Solicitudes'
 import TestGHL from '@/pages/TestGHL'
+import AltaEstudio from '@/pages/cliente/AltaEstudio'
 import { useAuth } from '@/context/AuthContext'
 import { Zap } from 'lucide-react'
 
@@ -37,6 +38,14 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/test-ghl" element={<TestGHL />} />
+      <Route
+        path="/alta-estudio"
+        element={
+          <ProtectedClienteRoute>
+            <AltaEstudio />
+          </ProtectedClienteRoute>
+        }
+      />
       <Route
         path="/cliente/onboarding"
         element={

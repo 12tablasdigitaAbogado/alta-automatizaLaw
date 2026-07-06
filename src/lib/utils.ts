@@ -26,10 +26,9 @@ export const LABELS_ESTADO_ALTA = {
 export const LABEL_CARPETA: Record<string, string> = {
   telegramas: 'Telegramas y cartas documento',
   demandas: 'Demandas laborales',
-  'escritos-tramite': 'Escritos de trámite',
-  liquidaciones: 'Liquidaciones',
+  escritos: 'Escritos procesales',
   impugnaciones: 'Impugnaciones periciales',
-  alegatos: 'Alegatos',
-  'respuestas-clientes': 'Respuestas a clientes',
   honorarios: 'Contratos de honorarios',
+  comunicaciones: 'Comunicaciones con clientes',
+  'escalas-cct': 'Escalas de CCT',
 }

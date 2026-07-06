@@ -6,6 +6,7 @@ export {
   checklistService,
   progresoService,
   altaService,
+  altaEstudioService,
   usuarioService,
   marcarPasoCompleto,
 } from './supabase'

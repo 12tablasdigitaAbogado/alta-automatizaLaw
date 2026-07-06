@@ -1,3 +1,6 @@
+import type { SkillId } from '@/data/skills'
+export type { SkillId } from '@/data/skills'
+
 export type Rol = 'cliente' | 'operador'
 
 export type EstadoCliente = 'pendiente' | 'activo' | 'rechazado'
@@ -36,20 +39,24 @@ export interface Documento {
   archivoLocal?: File
 }
 
-export type SkillId =
-  | 'telegrama-cd'
-  | 'demanda-laboral'
-  | 'escritos-tramite'
-  | 'liquidacion-rubros'
-  | 'analisis-contestacion'
-  | 'preparacion-testimonial'
-  | 'impugnacion-pericial'
-  | 'alegato'
-  | 'triage-consultas'
-  | 'jurisdiccion-competencia'
-  | 'respuesta-clientes'
-  | 'investigacion-juridica'
-  | 'contrato-honorarios'
+export interface Abogado {
+  id?: string
+  nombre: string
+  cuit?: string
+  matricula?: string
+  colegio?: string
+}
+
+export interface Jurisdiccion {
+  id?: string
+  nombre: string
+  instanciaPrevia?: 'si' | 'no' | 'no-se'
+  organismo?: string
+  ofrecimientoPrueba?: 'en-demanda' | 'acto-separado'
+}
+
+// Estado del wizard de alta: respuestas por instancia.
+export type RespuestasAlta = Record<string, Record<string, unknown>>
 
 export interface ConfiguracionModulos {
   skillIds: SkillId[]

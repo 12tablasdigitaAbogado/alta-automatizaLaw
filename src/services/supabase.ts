@@ -2,10 +2,12 @@ import { supabase } from '@/lib/supabase'
 import type {
   EstudioService, DocumentoService, ConfiguracionService,
   ContextoService, ChecklistService, ProgresoService, AltaService, UsuarioService,
+  AltaEstudioService,
 } from './interfaces'
 import type {
   Estudio, Documento, ConfiguracionModulos, ContextoEstudio,
   ChecklistTecnico, ProgresoRoadmap, Alta, ClienteResumen, Usuario, Rol, EstadoCliente,
+  RespuestasAlta,
 } from '@/types'
 import { carpetasDeSkills } from '@/data/skills'
 
@@ -325,22 +327,30 @@ async function computeYGuardar(estudioId: string): Promise<ProgresoRoadmap> {
     { data: cfgRow },
     { data: progresoRow },
     { data: altaRow },
+    { count: abogadosCount },
+    { count: jurisdiccionesCount },
   ] = await Promise.all([
-    supabase.from('estudios').select('denominacion, abogado_responsable, matricula, domicilio, telefono, email_estudio, perfil_id, contexto').eq('id', estudioId).single(),
+    supabase.from('estudios').select('denominacion, domicilio, telefono, email_estudio, pie_firma, perfil_id').eq('id', estudioId).single(),
     supabase.from('documentos').select('carpeta').eq('estudio_id', estudioId),
     supabase.from('checklist_tecnico').select('*').eq('estudio_id', estudioId).single(),
     supabase.from('configuracion_modulos').select('modulos').eq('estudio_id', estudioId).single(),
     supabase.from('progreso_roadmap').select('pasos').eq('estudio_id', estudioId).single(),
     supabase.from('altas').select('estado').eq('estudio_id', estudioId).maybeSingle(),
+    supabase.from('abogados').select('id', { count: 'exact', head: true }).eq('estudio_id', estudioId),
+    supabase.from('jurisdicciones').select('id', { count: 'exact', head: true }).eq('estudio_id', estudioId),
   ])
 
+  // Identidad "mínima viable" para desbloquear el resto del roadmap:
+  //  - datos base del estudio (denominación, contacto)
+  //  - al menos 1 abogado cargado
+  //  - al menos 1 jurisdicción cargada
   const identidadCompleta = !!(
     estudioRow?.denominacion &&
-    estudioRow?.abogado_responsable &&
-    estudioRow?.matricula &&
     estudioRow?.domicilio &&
     estudioRow?.telefono &&
-    estudioRow?.email_estudio
+    estudioRow?.email_estudio &&
+    (abogadosCount ?? 0) > 0 &&
+    (jurisdiccionesCount ?? 0) > 0
   )
 
   const skillIds = (cfgRow?.modulos ?? []) as ConfiguracionModulos['skillIds']
@@ -577,5 +587,134 @@ export const usuarioService: UsuarioService = {
         alta: ultimaAlta,
       }
     })
+  },
+}
+
+// ─── AltaEstudioService ──────────────────────────────────────────────────────
+// Routing por instancia:
+//  1 datos-estudio        → estudios (identidad) + abogados (lista)
+//  2 jurisdiccion-alcance → jurisdicciones (lista)
+//  3-8 (todo lo demás)    → respuestas_alta (payload jsonb)
+//  9 modelos-plantillas   → documentos (delegado; el subir archivos ya está
+//                           en documentoService.addDocumento)
+
+export const altaEstudioService: AltaEstudioService = {
+  async loadAll(estudioId) {
+    if (!estudioId) return {}
+    const respuestas: RespuestasAlta = {}
+
+    const [estudioRes, abogadosRes, jurisdiccionesRes, restoRes] = await Promise.all([
+      supabase.from('estudios').select('*').eq('id', estudioId).maybeSingle(),
+      supabase.from('abogados').select('*').eq('estudio_id', estudioId).order('orden', { ascending: true }),
+      supabase.from('jurisdicciones').select('*').eq('estudio_id', estudioId).order('orden', { ascending: true }),
+      supabase.from('respuestas_alta').select('*').eq('estudio_id', estudioId),
+    ])
+
+    if (estudioRes.data) {
+      const row = estudioRes.data as Record<string, unknown>
+      respuestas['datos-estudio'] = {
+        denominacion: row.denominacion ?? '',
+        domicilio:    row.domicilio ?? '',
+        telefono:     row.telefono ?? '',
+        email:        row.email_estudio ?? '',
+        pieFirma:     row.pie_firma ?? '',
+        abogados:     (abogadosRes.data ?? []).map(a => ({
+          nombre:    a.nombre ?? '',
+          cuit:      a.cuit ?? '',
+          matricula: a.matricula ?? '',
+          colegio:   a.colegio ?? '',
+        })),
+      }
+    }
+
+    if ((jurisdiccionesRes.data ?? []).length > 0) {
+      respuestas['jurisdiccion-alcance'] = {
+        jurisdicciones: (jurisdiccionesRes.data ?? []).map(j => ({
+          nombre:             j.nombre ?? '',
+          instanciaPrevia:    j.instancia_previa ?? undefined,
+          organismo:          j.organismo ?? '',
+          ofrecimientoPrueba: j.ofrecimiento_prueba ?? undefined,
+        })),
+      }
+    }
+
+    for (const r of restoRes.data ?? []) {
+      respuestas[r.instancia_id as string] = (r.payload as Record<string, unknown>) ?? {}
+    }
+
+    return respuestas
+  },
+
+  async saveInstancia(estudioId, instanciaId, payload) {
+    if (!estudioId) throw new Error('saveInstancia: estudioId requerido')
+
+    if (instanciaId === 'datos-estudio') {
+      // Identidad → estudios (columnas propias)
+      const { error: eEstudio } = await supabase
+        .from('estudios')
+        .update({
+          denominacion:  payload.denominacion ?? '',
+          domicilio:     payload.domicilio ?? '',
+          telefono:      payload.telefono ?? '',
+          email_estudio: payload.email ?? '',
+          pie_firma:     payload.pieFirma ?? '',
+          updated_at:    new Date().toISOString(),
+        })
+        .eq('id', estudioId)
+      if (eEstudio) throw new Error(eEstudio.message)
+
+      // Abogados → reemplazo total (delete + insert), simple y correcto para
+      // el tamaño esperado (< 10 abogados por estudio).
+      const abogados = Array.isArray(payload.abogados) ? (payload.abogados as Record<string, unknown>[]) : []
+      const { error: eDel } = await supabase.from('abogados').delete().eq('estudio_id', estudioId)
+      if (eDel) throw new Error(eDel.message)
+      if (abogados.length > 0) {
+        const filas = abogados.map((a, i) => ({
+          estudio_id: estudioId,
+          nombre:     String(a.nombre ?? ''),
+          cuit:       (a.cuit as string) ?? null,
+          matricula:  (a.matricula as string) ?? null,
+          colegio:    (a.colegio as string) ?? null,
+          orden:      i,
+        }))
+        const { error: eIns } = await supabase.from('abogados').insert(filas)
+        if (eIns) throw new Error(eIns.message)
+      }
+      return
+    }
+
+    if (instanciaId === 'jurisdiccion-alcance') {
+      const jur = Array.isArray(payload.jurisdicciones) ? (payload.jurisdicciones as Record<string, unknown>[]) : []
+      const { error: eDel } = await supabase.from('jurisdicciones').delete().eq('estudio_id', estudioId)
+      if (eDel) throw new Error(eDel.message)
+      if (jur.length > 0) {
+        const filas = jur.map((j, i) => ({
+          estudio_id:          estudioId,
+          nombre:              String(j.nombre ?? ''),
+          instancia_previa:    (j.instanciaPrevia as string) ?? null,
+          organismo:           (j.organismo as string) ?? null,
+          ofrecimiento_prueba: (j.ofrecimientoPrueba as string) ?? null,
+          orden:               i,
+        }))
+        const { error: eIns } = await supabase.from('jurisdicciones').insert(filas)
+        if (eIns) throw new Error(eIns.message)
+      }
+      return
+    }
+
+    // Instancia 9: sin persistence propia acá — los archivos ya se guardan en
+    // documentos vía documentoService.addDocumento cuando el usuario los sube.
+    if (instanciaId === 'modelos-plantillas') return
+
+    // Instancias 3-8: payload jsonb en respuestas_alta
+    const { error } = await supabase
+      .from('respuestas_alta')
+      .upsert({
+        estudio_id:   estudioId,
+        instancia_id: instanciaId,
+        payload,
+        updated_at:   new Date().toISOString(),
+      }, { onConflict: 'estudio_id,instancia_id' })
+    if (error) throw new Error(error.message)
   },
 }

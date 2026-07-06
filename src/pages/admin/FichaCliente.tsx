@@ -11,6 +11,12 @@ import { supabase } from '@/lib/supabase'
 import { carpetasDeSkills } from '@/data/skills'
 import { LABELS_ESTADO_ALTA, LABEL_CARPETA, cn } from '@/lib/utils'
 
+const FALLBACKS = import.meta.glob('../../assets/modelos-fallback/**/*', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>
+
 const RUNBOOK: { id: string; label: string }[] = [
   { id: 'drive-estructura', label: 'Crear estructura de carpetas en Drive del estudio' },
   { id: 'drive-modelos', label: 'Subir modelos del cliente a sus carpetas de Drive' },
@@ -84,11 +90,36 @@ export default function FichaCliente() {
         [`${nombre}/perfil_estudio.md`]: strToU8(generarContextoMd(data)),
       }
 
+      const carpetasConDocs = new Set<string>()
       await Promise.all(data.documentos.map(async doc => {
         const storagePath = doc.storagePath ?? `${doc.estudioId}/${doc.carpeta}/${doc.id}-${doc.nombre}`
         const { data: blob, error } = await supabase.storage.from('modelos').download(storagePath)
         if (error || !blob) return
         archivos[`${nombre}/modelos/${doc.carpeta}/${doc.nombre}`] = new Uint8Array(await blob.arrayBuffer())
+        carpetasConDocs.add(doc.carpeta)
+      }))
+
+      const carpetasFallback = Object.entries(FALLBACKS).reduce<Record<string, Record<string, string>>>((acc, [path, url]) => {
+        const match = path.match(/modelos-fallback\/([^/]+)\/([^/]+)$/)
+        if (!match) return acc
+        const [, carpeta, fileName] = match
+        acc[carpeta] = acc[carpeta] ?? {}
+        acc[carpeta][fileName] = url
+        return acc
+      }, {})
+
+      const skillIds = data.configuracion.skillIds ?? []
+      const carpetasEsperadas = new Set(carpetasDeSkills(skillIds).map(m => m.carpeta))
+
+      await Promise.all(Object.entries(carpetasFallback).map(async ([carpeta, files]) => {
+        if (carpetasConDocs.has(carpeta)) return
+        if (!carpetasEsperadas.has(carpeta)) return
+        await Promise.all(Object.entries(files).map(async ([fileName, url]) => {
+          const res = await fetch(url)
+          if (!res.ok) return
+          const buf = new Uint8Array(await res.arrayBuffer())
+          archivos[`${nombre}/modelos/${carpeta}/_generico-${fileName}`] = buf
+        }))
       }))
 
       zip(archivos, (err, bytes) => {

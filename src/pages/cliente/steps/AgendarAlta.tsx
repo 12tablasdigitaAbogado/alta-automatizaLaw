@@ -177,12 +177,11 @@ export function AgendarAlta() {
             Completá tu setup para desbloquear tu alta
           </p>
           <p className="text-sm text-text-dim mb-6 max-w-sm mx-auto">
-            Necesitás completar la identidad del estudio, subir al menos un modelo y confirmar el checklist técnico.
+            Necesitás completar la identidad del estudio y confirmar el checklist técnico.
           </p>
           <div className="space-y-2.5 text-left max-w-xs mx-auto">
             {[
               { ok: progreso?.identidadCompleta, label: 'Identidad del estudio' },
-              { ok: progreso?.tieneDocumentos, label: 'Al menos un modelo cargado' },
               { ok: progreso?.checklistCompleto, label: 'Checklist técnico' },
             ].map(({ ok, label }) => (
               <div key={label} className="flex items-center gap-2.5">

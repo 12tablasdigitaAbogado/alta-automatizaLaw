@@ -8,6 +8,7 @@ import type {
   Usuario,
   ChecklistTecnico,
   ClienteResumen,
+  RespuestasAlta,
 } from '@/types'
 
 export interface EstudioService {
@@ -47,6 +48,16 @@ export interface AltaService {
   reservarAlta(estudioId: string, fecha: string, hora: string): Promise<Alta>
   actualizarEstado(altaId: string, estado: Alta['estado']): Promise<void>
   listAltas(): Promise<Alta[]>
+}
+
+// Wizard de alta del estudio (9 instancias).
+// - Instancia 1 (datos-estudio): identidad → estudios + abogados[]
+// - Instancia 2 (jurisdiccion-alcance): jurisdicciones[]
+// - Instancias 3-8: payload jsonb en respuestas_alta
+// - Instancia 9 (modelos-plantillas): documentos (tabla existente)
+export interface AltaEstudioService {
+  loadAll(estudioId: string): Promise<RespuestasAlta>
+  saveInstancia(estudioId: string, instanciaId: string, payload: Record<string, unknown>): Promise<void>
 }
 
 export interface UsuarioService {

@@ -1,0 +1,382 @@
+// Schema declarativo del alta de estudio (9 instancias).
+//
+// TODO — sincronizar contra `formulario-alta-estudio.md` cuando llegue.
+// Los campos actuales son un esqueleto representativo basado en el brief:
+// cuando llegue el doc, reemplazar/completar sin tocar el renderer ni el context.
+
+export type FieldType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'boolean'      // sí / no
+  | 'radio'        // opción única
+  | 'multi'        // opción múltiple (checkboxes)
+  | 'select'
+  | 'repeatable'   // sub-formulario en lista
+  | 'file'         // archivos locales; upload real cuando conectemos back
+
+export interface Opcion {
+  value: string
+  label: string
+}
+
+export interface Sugerencia {
+  texto: string
+  motivo: string
+}
+
+// Context que se le pasa a showIf / sugerencia:
+// - answers: todas las respuestas (por instanciaId → fieldId → valor)
+// - localAnswers: respuestas del bloque actual (útil dentro de repeatables)
+export interface EvalCtx {
+  answers: Record<string, Record<string, unknown>>
+  localAnswers: Record<string, unknown>
+}
+
+export interface FieldDef {
+  id: string
+  label: string
+  tipo: FieldType
+  ayuda?: string
+  placeholder?: string
+  obligatorio?: boolean
+  opciones?: Opcion[]
+  campos?: FieldDef[]           // solo repeatable
+  minItems?: number             // solo repeatable
+  itemLabel?: string            // "Abogado", "Jurisdicción", etc.
+  accept?: string               // solo file
+  multiple?: boolean            // solo file
+  showIf?: (ctx: EvalCtx) => boolean
+  sugerencia?: (ctx: EvalCtx) => Sugerencia | null
+}
+
+export interface InstanciaDef {
+  id: string
+  numero: number
+  titulo: string
+  descripcion: string
+  campos: FieldDef[]
+}
+
+// ─── Sugerencias por jurisdicción (verificables, nunca automáticas) ───────────
+// El wizard las muestra como "sugerencia" — el abogado siempre confirma activamente.
+
+function sugerenciaInstanciaPrevia(ctx: EvalCtx): Sugerencia | null {
+  const jurisdiccion = String(ctx.localAnswers.nombre ?? '').toLowerCase()
+  if (jurisdiccion.includes('nación') || jurisdiccion.includes('nacion') || jurisdiccion.includes('caba') || jurisdiccion.includes('capital')) {
+    return { texto: 'sí', motivo: 'En Nación / CABA la instancia previa (SECLO) es obligatoria antes de demandar.' }
+  }
+  if (jurisdiccion.includes('buenos aires') || jurisdiccion === 'pba' || jurisdiccion.includes('provincia de buenos aires')) {
+    return { texto: 'no', motivo: 'En Provincia de Buenos Aires no hay instancia prejudicial obligatoria.' }
+  }
+  if (jurisdiccion.includes('córdoba') || jurisdiccion.includes('cordoba')) {
+    return { texto: 'no', motivo: 'En Córdoba no hay instancia prejudicial obligatoria.' }
+  }
+  return null
+}
+
+function sugerenciaPrueba(ctx: EvalCtx): Sugerencia | null {
+  const jurisdiccion = String(ctx.localAnswers.nombre ?? '').toLowerCase()
+  if (jurisdiccion.includes('nación') || jurisdiccion.includes('nacion') || jurisdiccion.includes('caba') || jurisdiccion.includes('capital')) {
+    return { texto: 'acto-separado', motivo: 'En Nación / CABA el ofrecimiento de prueba se hace por acto separado.' }
+  }
+  if (jurisdiccion.includes('buenos aires') || jurisdiccion === 'pba') {
+    return { texto: 'en-demanda', motivo: 'En Provincia de Buenos Aires el ofrecimiento de prueba va en la demanda.' }
+  }
+  if (jurisdiccion.includes('córdoba') || jurisdiccion.includes('cordoba')) {
+    return { texto: 'en-demanda', motivo: 'En Córdoba el ofrecimiento de prueba va en la demanda.' }
+  }
+  return null
+}
+
+// ─── Instancias ───────────────────────────────────────────────────────────────
+
+export const INSTANCIAS: InstanciaDef[] = [
+  {
+    id: 'datos-estudio',
+    numero: 1,
+    titulo: 'Datos del estudio',
+    descripcion: 'Identidad del estudio y equipo de abogados.',
+    campos: [
+      { id: 'denominacion', label: 'Denominación del estudio', tipo: 'text', obligatorio: true },
+      { id: 'domicilio',    label: 'Domicilio profesional',     tipo: 'text', obligatorio: true },
+      { id: 'telefono',     label: 'Teléfono',                  tipo: 'text' },
+      { id: 'email',        label: 'Email del estudio',         tipo: 'text', obligatorio: true },
+      {
+        id: 'abogados',
+        label: 'Abogados del estudio',
+        tipo: 'repeatable',
+        itemLabel: 'Abogado',
+        minItems: 1,
+        obligatorio: true,
+        campos: [
+          { id: 'nombre',    label: 'Nombre completo',         tipo: 'text', obligatorio: true },
+          { id: 'cuit',      label: 'CUIT',                    tipo: 'text' },
+          { id: 'matricula', label: 'Matrícula',               tipo: 'text', obligatorio: true },
+          { id: 'colegio',   label: 'Colegio / jurisdicción',  tipo: 'text', obligatorio: true },
+        ],
+      },
+      {
+        id: 'pieFirma',
+        label: 'Pie de firma para escritos',
+        tipo: 'textarea',
+        ayuda: 'Cómo aparece el bloque de firma al pie de cada escrito.',
+      },
+    ],
+  },
+  {
+    id: 'jurisdiccion-alcance',
+    numero: 2,
+    titulo: 'Jurisdicción y alcance',
+    descripcion: '¿En qué jurisdicciones trabaja el estudio? Configuración por cada una.',
+    campos: [
+      {
+        id: 'jurisdicciones',
+        label: 'Jurisdicciones en las que trabajás',
+        tipo: 'repeatable',
+        itemLabel: 'Jurisdicción',
+        minItems: 1,
+        obligatorio: true,
+        campos: [
+          {
+            id: 'nombre',
+            label: 'Nombre',
+            tipo: 'text',
+            obligatorio: true,
+            placeholder: 'Nación / CABA, Provincia de Buenos Aires, Córdoba, ...',
+          },
+          {
+            id: 'instanciaPrevia',
+            label: '¿Requiere instancia prejudicial obligatoria?',
+            tipo: 'radio',
+            obligatorio: true,
+            opciones: [
+              { value: 'si',    label: 'Sí' },
+              { value: 'no',    label: 'No' },
+              { value: 'no-se', label: 'No sé' },
+            ],
+            sugerencia: sugerenciaInstanciaPrevia,
+          },
+          {
+            id: 'organismo',
+            label: '¿Ante qué organismo?',
+            tipo: 'text',
+            placeholder: 'SECLO, comisión de conciliación, etc.',
+            showIf: ctx => ctx.localAnswers.instanciaPrevia === 'si',
+          },
+          {
+            id: 'ofrecimientoPrueba',
+            label: '¿Cómo va el ofrecimiento de prueba?',
+            tipo: 'radio',
+            obligatorio: true,
+            opciones: [
+              { value: 'en-demanda',    label: 'En la demanda' },
+              { value: 'acto-separado', label: 'Acto separado' },
+            ],
+            sugerencia: sugerenciaPrueba,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'mapa-proceso',
+    numero: 3,
+    titulo: 'Mapa del proceso',
+    descripcion: 'Qué etapas usás y particularidades de tu provincia.',
+    campos: [
+      {
+        id: 'etapas',
+        label: 'Etapas del proceso que usás',
+        tipo: 'multi',
+        opciones: [
+          { value: 'primera-consulta',    label: 'Primera consulta y triage' },
+          { value: 'intimacion',          label: 'Intimación por telegrama / CD' },
+          { value: 'instancia-previa',    label: 'Instancia prejudicial' },
+          { value: 'demanda',             label: 'Demanda' },
+          { value: 'ofrecimiento-prueba', label: 'Ofrecimiento de prueba' },
+          { value: 'produccion-prueba',   label: 'Producción de prueba' },
+          { value: 'alegato',             label: 'Alegato' },
+          { value: 'sentencia-recurso',   label: 'Sentencia y recursos' },
+          { value: 'ejecucion',           label: 'Ejecución' },
+        ],
+      },
+      {
+        id: 'particularidades',
+        label: '¿Algo distinto en tu provincia que quieras aclarar?',
+        tipo: 'textarea',
+        ayuda: 'Fuero, plazos, formas, prácticas locales — todo lo que no se ve en el manual.',
+      },
+    ],
+  },
+  {
+    id: 'casos-que-toma',
+    numero: 4,
+    titulo: 'Qué casos toma el estudio',
+    descripcion: 'Filtros de triage: qué entra, qué se deriva, qué se descarta.',
+    campos: [
+      {
+        id: 'tipos',
+        label: 'Tipos de caso que tomás',
+        tipo: 'multi',
+        opciones: [
+          { value: 'despido',         label: 'Despido incausado / indirecto' },
+          { value: 'diferencias',     label: 'Diferencias salariales' },
+          { value: 'no-registrado',   label: 'Trabajo no registrado / mal registrado' },
+          { value: 'accidente',       label: 'Accidentes / ART' },
+          { value: 'acoso',           label: 'Hostigamiento / acoso' },
+          { value: 'sindical',        label: 'Sindical / gremial' },
+        ],
+      },
+      { id: 'antiguedadMinima', label: 'Antigüedad mínima (en meses) para tomar el caso', tipo: 'number' },
+      { id: 'noToma',           label: '¿Qué NO tomás?', tipo: 'textarea' },
+      { id: 'deriva',           label: 'Casos que derivás a colegas', tipo: 'textarea' },
+    ],
+  },
+  {
+    id: 'criterios-liquidacion',
+    numero: 5,
+    titulo: 'Criterios de liquidación',
+    descripcion: 'Cómo calculás la indemnización.',
+    campos: [
+      {
+        id: 'reparacionIntegral',
+        label: '¿Pedís reparación integral?',
+        tipo: 'boolean',
+      },
+      {
+        id: 'inconstitucionalidades',
+        label: 'Inconstitucionalidades que planteás habitualmente',
+        tipo: 'multi',
+        opciones: [
+          { value: 'art245-tope', label: 'Art. 245 LCT (tope)' },
+          { value: 'art4-tarifado', label: 'Art. 4 Ley 24.557 (tarifado ART)' },
+          { value: 'otras',       label: 'Otras' },
+        ],
+      },
+      {
+        id: 'actualizacion',
+        label: 'Actualización de deuda',
+        tipo: 'radio',
+        opciones: [
+          { value: 'cer',       label: 'CER' },
+          { value: 'ripte',     label: 'RIPTE' },
+          { value: 'tasa-bcra', label: 'Tasa activa BCRA' },
+          { value: 'otra',      label: 'Otra' },
+        ],
+      },
+      {
+        id: 'fechaCalculo',
+        label: '¿A qué fecha calculás?',
+        tipo: 'radio',
+        opciones: [
+          { value: 'despido',    label: 'Fecha del despido' },
+          { value: 'demanda',    label: 'Fecha de la demanda' },
+          { value: 'sentencia',  label: 'Fecha estimada de sentencia' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'honorarios',
+    numero: 6,
+    titulo: 'Honorarios',
+    descripcion: 'Cómo pactás los honorarios con el cliente.',
+    campos: [
+      { id: 'cuotaLitisPorcentaje', label: '% de cuota litis habitual', tipo: 'number', obligatorio: true },
+      {
+        id: 'tipoPacto',
+        label: 'Tipo de pacto',
+        tipo: 'radio',
+        opciones: [
+          { value: 'cuota-litis',  label: 'Cuota litis pura' },
+          { value: 'anticipo',     label: 'Cuota litis + anticipo' },
+          { value: 'hora',         label: 'Por hora' },
+          { value: 'mixto',        label: 'Mixto' },
+        ],
+      },
+      { id: 'condiciones', label: 'Condiciones y cláusulas particulares', tipo: 'textarea' },
+      {
+        id: 'ley27802',
+        label: '¿Adherís al régimen de Ley 27.802?',
+        tipo: 'boolean',
+      },
+    ],
+  },
+  {
+    id: 'estilo-doctrina',
+    numero: 7,
+    titulo: 'Estilo, doctrina y redacción',
+    descripcion: 'Cómo escribís y qué doctrina considerás cabecera.',
+    campos: [
+      { id: 'fallos',      label: 'Fallos de cabecera (uno por línea)', tipo: 'textarea', placeholder: '"Vizzoti", "Álvarez", "Aquino"...' },
+      {
+        id: 'tono',
+        label: 'Tono de redacción',
+        tipo: 'radio',
+        opciones: [
+          { value: 'formal',       label: 'Formal / conservador' },
+          { value: 'directo',      label: 'Directo / de choque' },
+          { value: 'combativo',    label: 'Combativo' },
+          { value: 'equilibrado',  label: 'Equilibrado' },
+        ],
+      },
+      {
+        id: 'armadoDemanda',
+        label: '¿Cómo armás la demanda?',
+        tipo: 'textarea',
+        ayuda: 'Estructura, orden de secciones, elementos que no pueden faltar.',
+      },
+    ],
+  },
+  {
+    id: 'comunicacion-clientes',
+    numero: 8,
+    titulo: 'Comunicación con clientes',
+    descripcion: 'Cómo hablás con tus clientes.',
+    campos: [
+      {
+        id: 'tono',
+        label: 'Tono con el cliente',
+        tipo: 'radio',
+        opciones: [
+          { value: 'cercano',    label: 'Cercano / informal' },
+          { value: 'profesional',label: 'Profesional / neutro' },
+          { value: 'tecnico',    label: 'Técnico / detallado' },
+        ],
+      },
+      { id: 'plantillas', label: 'Plantillas propias (frases, aperturas, cierres)', tipo: 'textarea' },
+    ],
+  },
+  {
+    id: 'modelos-plantillas',
+    numero: 9,
+    titulo: 'Modelos y plantillas',
+    descripcion: 'Subí los modelos que tenés. Todo es opcional — podés completar más tarde.',
+    campos: [
+      { id: 'telegramas',    label: 'Telegramas / cartas documento', tipo: 'file', accept: '.docx,.pdf,.doc,.txt', multiple: true },
+      { id: 'demandas',      label: 'Demandas',                      tipo: 'file', accept: '.docx,.pdf,.doc,.txt', multiple: true },
+      { id: 'escritos',      label: 'Escritos de trámite / prueba / recursos / alegato', tipo: 'file', accept: '.docx,.pdf,.doc,.txt', multiple: true },
+      { id: 'impugnaciones', label: 'Impugnaciones periciales',      tipo: 'file', accept: '.docx,.pdf,.doc,.txt', multiple: true },
+      { id: 'honorarios',    label: 'Contrato de honorarios / cuota litis', tipo: 'file', accept: '.docx,.pdf,.doc,.txt', multiple: true },
+      { id: 'comunicaciones',label: 'Plantillas de comunicación con clientes', tipo: 'file', accept: '.docx,.pdf,.doc,.txt', multiple: true },
+      { id: 'escalasCct',    label: 'Escalas de CCT (si manejás alguna)', tipo: 'file', accept: '.pdf,.xls,.xlsx,.csv', multiple: true },
+    ],
+  },
+]
+
+export const INSTANCIA_MAP: Record<string, InstanciaDef> = Object.fromEntries(
+  INSTANCIAS.map(i => [i.id, i])
+)
+
+// Mapeo de campos de la instancia 9 → carpeta canónica en Storage.
+// Es la fuente de verdad para el manifiesto de carpetas del estudio.
+export const CARPETAS_MODELOS: { fieldId: string; carpeta: string }[] = [
+  { fieldId: 'telegramas',     carpeta: 'modelos/telegramas' },
+  { fieldId: 'demandas',       carpeta: 'modelos/demandas' },
+  { fieldId: 'escritos',       carpeta: 'modelos/escritos' },
+  { fieldId: 'impugnaciones',  carpeta: 'modelos/impugnaciones' },
+  { fieldId: 'honorarios',     carpeta: 'modelos/honorarios' },
+  { fieldId: 'comunicaciones', carpeta: 'modelos/comunicaciones' },
+  { fieldId: 'escalasCct',     carpeta: 'datos/escalas-cct' },
+]

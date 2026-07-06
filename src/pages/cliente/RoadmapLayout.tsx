@@ -4,7 +4,7 @@ import { RoadmapProvider, useRoadmap } from '@/context/RoadmapContext'
 import { useAuth } from '@/context/AuthContext'
 import { PasoIndicador } from '@/components/roadmap/PasoIndicador'
 import { Bienvenida } from './steps/Bienvenida'
-import { DatosEstudio } from './steps/DatosEstudio'
+import { AltaEstudioEmbedded } from './AltaEstudio'
 import { ModulosConectores } from './steps/ModulosConectores'
 import { ChecklistTecnico } from './steps/ChecklistTecnico'
 import { RevisionFinal } from './steps/RevisionFinal'
@@ -40,7 +40,7 @@ function RoadmapInner() {
   const renderPaso = () => {
     switch (pasoActivo) {
       case 1: return <Bienvenida />
-      case 2: return <DatosEstudio />
+      case 2: return <AltaEstudioEmbedded onFinalizar={() => setPasoActivo(3)} />
       case 3: return <ModulosConectores />
       case 4: return <ChecklistTecnico />
       case 5: return <RevisionFinal />
