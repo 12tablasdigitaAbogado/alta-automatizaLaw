@@ -12,24 +12,27 @@ Stack: React 19 + TypeScript + Vite + Tailwind CSS v4 + Supabase (auth, DB, Stor
 ```
 src/
   context/
-    AuthContext.tsx       — Auth state, signIn/signUp/logout, refreshPerfil()
-    RoadmapContext.tsx    — Estado completo del wizard (estudio, docs, config, progreso, alta)
+    AuthContext.tsx            — Auth state, signIn/signUp/logout, refreshPerfil()
+    RoadmapContext.tsx         — Estado del roadmap externo (6 pasos)
+    AltaEstudioContext.tsx     — Estado del wizard de alta (9 instancias) + autosave
   pages/
     Login.tsx
     cliente/
-      RoadmapLayout.tsx           — Shell del wizard (stepper + contenido)
+      RoadmapLayout.tsx        — Shell del roadmap externo (stepper + contenido)
+      AltaEstudio.tsx          — Wizard de 9 instancias (default: página standalone /alta-estudio;
+                                  export AltaEstudioEmbedded para usarlo dentro del paso 2)
       steps/
         Bienvenida.tsx            — Paso 1
-        DatosEstudio.tsx          — Paso 2: identidad del estudio
-        ModulosConectores.tsx     — Paso 3: skills (acordeón) + upload de modelos por skill
+        DatosEstudio.tsx          — LEGACY (huérfano — no lo usa nadie desde que paso 2 pasó al wizard)
+        ModulosConectores.tsx     — Paso 3: skills read-only agrupadas por etapa (sin uploads)
         ChecklistTecnico.tsx      — Paso 4
         RevisionFinal.tsx         — Paso 5
-        AgendarAlta.tsx           — Paso 6: Calendly + detección de booking
+        AgendarAlta.tsx           — Paso 6: GHL + detección de booking
     admin/
-      ListaClientes.tsx           — Primera columna: nombre del cliente (no del estudio)
+      ListaClientes.tsx
       FichaCliente.tsx
       Solicitudes.tsx
-      Agenda.tsx                  — Embed de Google Calendar (debe ser público para que todos lo vean)
+      Agenda.tsx                  — Embed de Google Calendar (público)
   components/
     layout/
       TopBarCliente.tsx
@@ -38,17 +41,35 @@ src/
       NavPasos.tsx
       PasoIndicador.tsx
     shared/
-      CalendarBooking.tsx         — Widget inline de Calendly
+      GhlBooking.tsx / GhlForm.tsx
+    altaEstudio/
+      Field.tsx                   — Renderer polimórfico del wizard de alta
+                                    (text/textarea/number/boolean/radio/multi/select/
+                                     repeatable/file + sugerencia confirmable)
   services/
-    interfaces.ts                 — Contratos de servicio (TypeScript interfaces)
-    supabase.ts                   — Implementación real con Supabase
-    mock.ts                       — Implementación mock (no activa)
-    index.ts                      — Re-exporta desde supabase.ts (cambiar aquí para mockear)
-  types/index.ts
-  data/skills.ts                  — Catálogo declarativo de skills (13 skills, 4 bloques)
+    interfaces.ts                 — Contratos + AltaEstudioService
+    supabase.ts                   — Impl real (incluye altaEstudioService)
+    mock.ts                       — Impl mock (no activa)
+    index.ts                      — Re-exporta desde supabase.ts
+  types/index.ts                  — Tipos globales + Abogado, Jurisdiccion, RespuestasAlta.
+                                    SkillId se re-exporta desde data/skills.ts (fuente única).
+  data/
+    skills.ts                     — Catálogo declarativo (21 skills, 5 etapas)
+    altaEstudio.ts                — Schema del wizard de alta (9 instancias, campos, showIf,
+                                    sugerencias por jurisdicción, mapeo carpetas)
+    fallbackModels.ts             — Modelos por defecto descubiertos vía import.meta.glob
+                                    en src/assets/<carpeta>/*
   lib/
-    supabase.ts                   — Cliente Supabase (createClient)
+    supabase.ts                   — Cliente Supabase
     utils.ts                      — cn(), formatBytes(), LABEL_CARPETA, LABELS_ESTADO_ALTA
+    altaEstudio/
+      generator.ts                — Genera perfil_estudio.md + manifiesto de carpetas
+                                    + mapeo archivos → carpetas del estudio
+  assets/
+    telegramas/ demandas/ escritos/ impugnaciones/
+    honorarios/ liquidaciones/ comunicaciones/
+                                  — Modelos por defecto que se ofrecen cuando el estudio
+                                    no sube los suyos. Servidos por Vite con URLs hasheadas.
 ```
 
 ---
@@ -62,12 +83,17 @@ src/
 | Tabla | Descripción | Columnas clave |
 |-------|-------------|----------------|
 | `perfiles` | 1:1 con `auth.users` | `id` (= auth.uid), `nombre`, `email`, `rol`, `estado`, `estudio_id` |
-| `estudios` | Datos del estudio jurídico | `id` (UUID), `perfil_id`, `denominacion`, `abogado_responsable`, `matricula`, `domicilio`, `telefono`, `email_estudio`, `estilo_redaccion`, `pie_firma`, `contexto` (jsonb) |
-| `documentos` | Archivos modelo subidos | `id` (UUID), `estudio_id`, `carpeta` (text), `nombre`, `tamano`, `fecha`, `storage_path` |
+| `estudios` | Datos del estudio jurídico | `id` (UUID), `perfil_id`, `denominacion`, `abogado_responsable`*, `matricula`*, `domicilio`, `telefono`, `email_estudio`, `estilo_redaccion`, `pie_firma`, `contexto` (jsonb) |
+| `abogados` | Equipo del estudio (Instancia 1 del alta) | `id` (UUID), `estudio_id`, `nombre`, `cuit`, `matricula`, `colegio`, `orden` |
+| `jurisdicciones` | Jurisdicciones en las que trabaja (Instancia 2) | `id` (UUID), `estudio_id`, `nombre`, `instancia_previa` (`si\|no\|no-se`), `organismo`, `ofrecimiento_prueba` (`en-demanda\|acto-separado`), `orden` |
+| `respuestas_alta` | Payload jsonb para instancias 3-8 | PK `(estudio_id, instancia_id)`, `payload` (jsonb), `updated_at` |
+| `documentos` | Archivos modelo subidos (incluye Instancia 9) | `id` (UUID), `estudio_id`, `carpeta` (text), `nombre`, `tamano`, `fecha`, `storage_path` |
 | `configuracion_modulos` | Skills activas | `estudio_id`, `modulos` (jsonb array de SkillId), `conectores` (jsonb — columna legacy, ya no se usa) |
 | `checklist_tecnico` | Checks técnicos del cliente | `estudio_id`, `claude_desktop`, `plan_activo`, `google_workspace`, `buena_internet`, `disponibilidad_reunion` |
 | `progreso_roadmap` | Progreso calculado y cacheado | `estudio_id`, `pasos` (jsonb), `porcentaje`, `identidad_completa`, `tiene_documentos`, `checklist_completo`, `desbloqueado` |
 | `altas` | Reuniones de alta agendadas | `id`, `estudio_id`, `fecha`, `hora_inicio`, `hora_fin`, `link_meet`, `estado`, `notas` |
+
+`*` = columnas legacy que ya no se escriben desde el wizard nuevo (identidad de abogados vive ahora en `abogados`).
 
 ### Convenciones de columnas
 
@@ -143,25 +169,28 @@ El frontend llama: `supabase.rpc('crear_estudio_inicial', { p_denominacion: ...,
 - **Retorna el estudio ID efectivo** (siempre string, nunca void)
 
 ### `progresoService.recalcularProgreso(estudioId)`
-Hace **6 queries en paralelo** a `estudios`, `documentos`, `checklist_tecnico`, `configuracion_modulos`, `progreso_roadmap` y `altas`. Calcula flags localmente y hace UPSERT en `progreso_roadmap`. Siempre retorna un `ProgresoRoadmap` válido aunque el UPSERT falle.
+Hace **8 queries en paralelo** a `estudios`, `documentos`, `checklist_tecnico`, `configuracion_modulos`, `progreso_roadmap`, `altas`, `abogados` (count) y `jurisdicciones` (count). Calcula flags localmente y hace UPSERT en `progreso_roadmap`. Siempre retorna un `ProgresoRoadmap` válido aunque el UPSERT falle.
 
-**Auto-cura de pasos** — los pasos NO se confían del cache `progreso_roadmap.pasos`; se derivan del estado real de la DB. Esto hace que el progreso sea idempotente y resista race conditions entre `marcarPasoCompleto` (async, sin await) y la recarga del context:
+**Auto-cura de pasos** — los pasos NO se confían del cache `progreso_roadmap.pasos`; se derivan del estado real de la DB:
 
 | Paso | Derivado de |
 |------|-------------|
 | 1 | Existe el row en `estudios` |
-| 2 | `identidadCompleta` (6 campos obligatorios del estudio no vacíos) |
+| 2 | `identidadCompleta` (ver criterio nuevo abajo) |
 | 3 | Hay `skillIds` configurados o algún `documento` cargado |
 | 4 | `checklistCompleto` (5 checks en true) |
 | 5 | Sin derivación — se marca manualmente desde `RevisionFinal` |
 | 6 | Existe un row en `altas` con estado `agendada` o `realizada` |
 
-Además limpia el `pasos[7]` legacy (residuo del bug donde `marcarAltaAgendada` marcaba paso 7 en vez de 6).
+**Criterio nuevo de `identidadCompleta`** (cambió al integrar el wizard de 9 instancias): `denominacion + domicilio + telefono + email_estudio` del estudio, **más** `count(abogados) ≥ 1` y `count(jurisdicciones) ≥ 1`. Ya no exige las columnas legacy `abogado_responsable` y `matricula` de `estudios` (esos datos ahora viven en la tabla `abogados`).
 
 **Fórmula de `desbloqueado`:** `identidadCompleta && checklistCompleto`
-(los modelos ya no bloquean el agendamiento — si faltan, se avisa pero se puede continuar)
+(los modelos NO bloquean el agendamiento — la pantalla de "Completá tu setup" en `AgendarAlta` solo lista identidad + checklist).
 
 **`pasosBase`:** `[1, 2, 3, 4, 5, 6]` — 6 pasos, porcentaje sobre 6.
+
+### `altaEstudioService.{loadAll, saveInstancia}`
+Ver sección "Wizard de alta del estudio (paso 2)" más abajo — routing por instancia hacia distintas tablas.
 
 ### `altaService.reservarAlta(estudioId, fecha, horaOLink)`
 - `fecha` puede ser `''` (cuando viene de Calendly, solo guardamos la URI)
@@ -200,74 +229,122 @@ Estado central del wizard. Carga todo en paralelo al montar (`useEffect` sobre `
 
 ---
 
-## Wizard — 6 pasos
+## Roadmap externo — 6 pasos
 
 | Paso | Componente | Datos guardados |
 |------|-----------|-----------------|
 | 1 | Bienvenida | — |
-| 2 | DatosEstudio | `estudios` (identidad) |
-| 3 | ModulosConectores | `configuracion_modulos` + `documentos` + Storage |
+| 2 | **AltaEstudioEmbedded** (wizard de 9 instancias) | `estudios` + `abogados` + `jurisdicciones` + `respuestas_alta` + `documentos` (Instancia 9) |
+| 3 | ModulosConectores (informativo) | `configuracion_modulos` (fija skillIds al continuar) |
 | 4 | ChecklistTecnico | `checklist_tecnico` |
 | 5 | RevisionFinal | marca paso 5 completo |
-| 6 | AgendarAlta | `altas` (vía Calendly) |
+| 6 | AgendarAlta | `altas` (vía GHL) |
 
-**Paso 3 — Skills y modelos:**
-- Todas las skills siempre activas (no seleccionables)
-- Acordeón por skill, todos cerrados por defecto
-- Cada skill muestra: número (círculo morado), nombre, descripción, ícono de estado
-  - `CheckCircle2` verde (`text-success`) = tiene al menos 1 archivo subido, o no requiere modelo
-  - `Clock` ámbar = modelo esperado pero aún sin archivo
-- Al expandir: zona de upload del modelo de la skill
-- Si hay skills con modelo sin subir al dar Continuar → popup de advertencia (renderizado con `createPortal` para evitar que el `backdrop-blur` del header sticky lo descentre)
-- Al guardar: `saveConfiguracion({ skillIds: SKILLS.map(s => s.id) })`
+**Paso 2 (wizard de alta):** el paso ya no es un solo formulario de identidad — renderiza el wizard de 9 instancias descrito en la sección siguiente. Al terminar la última instancia se dispara `onFinalizar={() => setPasoActivo(3)}`. `DatosEstudio.tsx` es legacy, no está enrutado ni importado; se puede borrar.
 
-**Lógica de estado de skill (`ModulosConectores.tsx`):**
-```tsx
-const modelo = skill.modelos[0] ?? null
-const docs = modelo ? documentos.filter(d => d.carpeta === modelo.carpeta) : []
-const tieneArchivo = !modelo || docs.length > 0  // verde si: sin modelo requerido O tiene ≥1 archivo
-```
-El popup de advertencia filtra: `skill.modelos[0]` existe y `docs.length === 0`.
+**Paso 3 — Skills (informativo, sin uploads):**
+- Lista read-only de las 21 skills agrupadas por etapa (los uploads ya se pidieron en Instancia 9 del paso 2).
+- Cada skill: nombre, descripción, y una línea chica: "N modelos cargados" / "Sin modelo del estudio · usa modelo genérico" / "Modelo opcional".
+- Banner ámbar arriba solo si faltan modelos obligatorios (`skill.modelos[0].obligatorio && docs.length === 0`), con botón "Volver al alta e Instancia 9" que hace `setPasoActivo(2)`.
+- Sin ícono decorativo de header, sin ícono de estado por skill, sin badge "Nueva" — copy limpio.
+- Al continuar: `saveConfiguracion({ skillIds: SKILLS.map(s => s.id) })` (persiste las 21 IDs para que `recalcularProgreso` marque paso 3 completo) → `completarPaso(3)` → paso 4.
 
 **Desbloqueo del paso 6 (AgendarAlta):** `progreso.desbloqueado` requiere:
-- `identidadCompleta`: los 6 campos obligatorios de `estudios` no vacíos
+- `identidadCompleta`: nuevo criterio (ver `progresoService`)
 - `checklistCompleto`: los 5 checks de `checklist_tecnico` en true
 
-**Modelos faltantes:** no bloquean, pero `RevisionFinal` muestra advertencia amarilla con link al paso 3.
+La pantalla de "Completá tu setup" en `AgendarAlta.tsx` solo lista **identidad + checklist técnico** (los modelos ya no se listan como requisito — no bloquean).
 
 ---
 
-## Skills — catálogo (13 skills, 4 bloques)
+## Wizard de alta del estudio (paso 2) — 9 instancias
 
-`src/data/skills.ts` exporta `SKILLS` — array ordenado para mostrar en UI. El orden está definido por `SKILL_ORDER` al final del archivo.
+**Fuente de verdad:** `src/data/altaEstudio.ts` — schema declarativo. Cuando llegue el `formulario-alta-estudio.md`, se reemplaza ese archivo y todo lo demás sigue funcionando sin cambios.
 
-### Orden de presentación y necesidad de modelo
+**Componentes:**
+- `pages/cliente/AltaEstudio.tsx` — dos exports:
+  - `default` (página `/alta-estudio`, standalone con sticky header)
+  - `AltaEstudioEmbedded` (embebido dentro del paso 2 del roadmap, sin sticky, con botón "Continuar al siguiente paso" en la última instancia)
+- `components/altaEstudio/Field.tsx` — renderer polimórfico. Soporta: `text | textarea | number | boolean | radio | multi | select | repeatable | file`. Cada `FieldDef` puede llevar `showIf(ctx)` (condicional) y `sugerencia(ctx)` (sugerencia por jurisdicción, siempre verificable — nunca autofill silencioso; el usuario clickea "Usar").
+- `context/AltaEstudioContext.tsx` — estado + autosave. Al montar carga desde Supabase (`altaEstudioService.loadAll`) y usa localStorage como buffer offline y prime de respuesta rápida. Al pasar de instancia (`setInstanciaActiva`) dispara `saveInstancia` de la actual (fire & forget con feedback vía `saving` y `saveError`).
+- `lib/altaEstudio/generator.ts` — funciones puras: `generarPerfilEstudio(respuestas)` → markdown; `generarManifiestoCarpetas(respuestas)` → lista de paths; `mapearArchivosACarpetas(archivos)` para el upload final.
 
-| # | Skill | ID | Modelo |
-|---|-------|----|--------|
-| 1 | Triage de Consultas | `triage-consultas` | No |
-| 2 | Contrato de Honorarios | `contrato-honorarios` | Obligatorio |
-| 3 | Respuesta a Clientes | `respuesta-clientes` | Opcional |
-| 4 | Telegrama / Carta Documento | `telegrama-cd` | Obligatorio |
-| 5 | Jurisdicción y Competencia | `jurisdiccion-competencia` | No |
-| 6 | Liquidación de Rubros | `liquidacion-rubros` | Opcional |
-| 7 | Demanda Laboral | `demanda-laboral` | Obligatorio |
-| 8 | Escritos de Trámite | `escritos-tramite` | Obligatorio |
-| 9 | Análisis de Contestación | `analisis-contestacion` | No |
-| 10 | Preparación Testimonial | `preparacion-testimonial` | No |
-| 11 | Impugnación Pericial | `impugnacion-pericial` | Obligatorio |
-| 12 | Alegato | `alegato` | Opcional |
-| 13 | Investigación Jurídica | `investigacion-juridica` | No |
+**Instancias:**
 
-**Carpetas en Storage (bucket `modelos`):**
-- `telegramas`, `demandas`, `escritos-tramite`, `liquidaciones`
-- `impugnaciones`, `alegatos`, `respuestas-clientes`, `honorarios`
+| # | ID | Guarda en |
+|---|----|-----------|
+| 1 | `datos-estudio` | `estudios` (identidad) + `abogados[]` (delete + insert) |
+| 2 | `jurisdiccion-alcance` | `jurisdicciones[]` (delete + insert) |
+| 3 | `mapa-proceso` | `respuestas_alta` payload jsonb |
+| 4 | `casos-que-toma` | `respuestas_alta` payload jsonb |
+| 5 | `criterios-liquidacion` | `respuestas_alta` payload jsonb |
+| 6 | `honorarios` | `respuestas_alta` payload jsonb |
+| 7 | `estilo-doctrina` | `respuestas_alta` payload jsonb |
+| 8 | `comunicacion-clientes` | `respuestas_alta` payload jsonb |
+| 9 | `modelos-plantillas` | files → `documentos` + Storage (bucket `modelos`) vía `documentoService.addDocumento` |
 
-**Modelo opcional:** `obligatorio: false, minArchivos: 0` → aparece en el popup de advertencia si no tiene archivo (igual que obligatorio), pero no bloquea el wizard.
+**Creación del estudio (Instancia 1 sin `estudioId`):** el context detecta `!estudioId && instancia === datos-estudio` y llama `estudioService.saveEstudio('', ...)` (que a su vez llama la RPC `crear_estudio_inicial`). Después `refreshPerfil()` para propagar el nuevo `estudioId`.
 
-**Sin modelo:** `modelos: []` → muestra siempre ícono verde; el acordeón dice "Esta skill no requiere modelo de documento."
+**Sugerencias por jurisdicción (verificables):** en Instancia 2, el nombre de la jurisdicción dispara sugerencias:
+- Nación / CABA → instancia previa: "sí" (SECLO); ofrecimiento de prueba: "acto separado".
+- PBA → sin instancia previa; ofrecimiento en la demanda.
+- Córdoba → sin instancia previa; ofrecimiento en la demanda.
 
-> **TODO pendiente:** cargar archivos modelo por defecto en Supabase Storage (bucket público) y agregar las URLs en el campo `modeloDefault` de cada `ModeloRequerido` en `skills.ts`. Cuando estén disponibles, aparecerá un botón "Descargar modelo de ejemplo" en la zona de upload.
+Aparecen como cajita con botón "Usar" — nunca se completan solas. El campo queda vacío hasta que el abogado confirma.
+
+**`instanciaCompleta` (context):** una instancia se considera completada si todos los obligatorios visibles tienen valor **y** (si no hay obligatorios en absoluto) al menos un campo visible tiene valor. Sin este último check, las instancias con puro texto libre (3, 4, 5, 7, 8, 9) aparecían verdes de arranque.
+
+**Progreso del wizard:** se calcula localmente sobre `INSTANCIAS`. El stepper interno marca ✓ verde solo si `instanciaCompleta` da true.
+
+**Ruta standalone `/alta-estudio`:** sigue viva por si el operador o el cliente quieren accederla directo fuera del roadmap. Usa el mismo context y schema.
+
+**Generación del perfil:** el panel final (última instancia) ofrece descargar:
+- `<Estudio>-perfil_estudio.md` — el perfil generado a partir de las respuestas (formato heading + secciones por instancia).
+- `<Estudio>-carpetas.txt` — manifiesto de la estructura de carpetas del estudio.
+
+**Punto de integración pendiente** (comentado en `generator.ts`): cuando la orquestación remota esté lista, `_puntoIntegracionBackend` debería subir el `.md` a Drive y crear la estructura de carpetas remota. Hoy la generación es local y descargable.
+
+---
+
+## Skills — catálogo (21 skills, 5 etapas)
+
+`src/data/skills.ts` exporta `SKILLS` — array ordenado según `SKILL_ORDER`. El campo `etapa: EtapaId` reemplazó al viejo `bloque: string`. Constante `ETAPAS: Etapa[]` provee los metadatos de cada agrupación.
+
+### Etapas
+1. **Antes de tomar el caso** — Ficha de Primera Consulta, Triage, Jurisdicción y Competencia, Instancia Prejudicial, Estrategia de Caso, Contrato de Honorarios
+2. **Intimación y armado** — Telegrama / CD, Liquidación de Rubros, Investigación Jurídica, Plazos Procesales
+3. **Demanda y trámite** — Demanda Laboral, Nómina Documental, Ofrecimiento de Prueba, Escritos de Trámite, Análisis de Contestación
+4. **Prueba y cierre** — Impugnación Pericial, Preparación Testimonial, Alegato, Recurso de Apelación
+5. **Transversales** — Respuesta a Clientes, Anonimizador de Documentos
+
+### Modelos y carpetas (bucket `modelos`)
+| Carpeta | Skills que la usan | Obligatoriedad efectiva |
+|---------|--------------------|-------------------------|
+| `telegramas` | Telegrama / CD | Obligatorio |
+| `demandas` | Demanda Laboral | Obligatorio |
+| `escritos` | Escritos de Trámite, Ofrecimiento de Prueba, Recurso de Apelación, Alegato | Obligatorio (por Escritos de Trámite / Ofrecimiento / Recurso; Alegato aporta opcional) |
+| `impugnaciones` | Impugnación Pericial | Obligatorio |
+| `honorarios` | Contrato de Honorarios | Obligatorio |
+| `comunicaciones` | Respuesta a Clientes | Opcional |
+| `escalas-cct` | Liquidación de Rubros | Opcional |
+
+**Nota renames** (aplicado al pasar de 13 → 21 skills): `escritos-tramite` → `escritos` (compartida entre 4 skills), `respuestas-clientes` → `comunicaciones`, `alegatos` → `escritos` (fusionada). Como la DB fue wipeada el 2026-06-21 no hubo migración de datos; si en el futuro hay clientes preexistentes con carpetas viejas hay que armar migración de strings en `documentos.carpeta`.
+
+**Sin modelo (`modelos: []`):** todas las skills nuevas de las etapas 1 y 5 y la mayoría de las transversales. Aparecen en la lista sin bloque de modelo.
+
+`SKILL_MAP`, `skillsPorEtapa(etapaId)` y `carpetasDeSkills(skillIds)` son los helpers exportados.
+
+### Fallback models (`src/data/fallbackModels.ts`)
+
+Descubre automáticamente los archivos que viven en `src/assets/<carpeta>/*` vía `import.meta.glob('../assets/*/*.{docx,doc,pdf,txt,xlsx,xls}', { eager: true, query: '?url', import: 'default' })`. Vite los sirve con URLs hasheadas en el build.
+
+Los nombres de carpeta en `src/assets/` coinciden 1:1 con las carpetas del bucket `modelos`, así que no hace falta ningún mapeo. Helpers: `fallbacksDeCarpeta(carpeta)`, `tieneFallbacks(carpeta)`, `FALLBACKS_POR_CARPETA`.
+
+Se muestran en el paso 3 dentro de un `<details>` colapsable con descargas individuales (cuando decidas volver a incluirlo en algún punto del flujo — hoy el paso 3 es solo informativo).
+
+**Copy:** eliminar toda referencia a "12 Tablas" en texto user-facing (banner, descripciones, manifiesto descargable, etc.). El comentario en `fallbackModels.ts` es dev-only y puede mencionarlo.
+
+> **TODO pendiente:** el campo `modeloDefault` en `ModeloRequerido` quedó sin uso (ya cubierto por el sistema de fallbacks). Se puede eliminar del schema.
 
 ---
 
@@ -354,22 +431,37 @@ Hoy quedan 3 placeholders de prueba que hay que cambiar antes de salir a producc
 ## Tipos importantes
 
 ```typescript
-type SkillId =
-  | 'telegrama-cd' | 'demanda-laboral' | 'escritos-tramite'
-  | 'liquidacion-rubros' | 'analisis-contestacion' | 'preparacion-testimonial'
-  | 'impugnacion-pericial' | 'alegato' | 'triage-consultas'
-  | 'jurisdiccion-competencia' | 'respuesta-clientes' | 'investigacion-juridica'
-  | 'contrato-honorarios'
+// SkillId es fuente única en data/skills.ts; types/index.ts hace re-export.
+// 21 skills — ver "Skills — catálogo" arriba para el listado y las etapas.
+
+interface Abogado {
+  id?: string
+  nombre: string
+  cuit?: string
+  matricula?: string
+  colegio?: string
+}
+
+interface Jurisdiccion {
+  id?: string
+  nombre: string
+  instanciaPrevia?: 'si' | 'no' | 'no-se'
+  organismo?: string
+  ofrecimientoPrueba?: 'en-demanda' | 'acto-separado'
+}
+
+// Estado del wizard de alta: respuestas por instancia.
+type RespuestasAlta = Record<string, Record<string, unknown>>
 
 interface ConfiguracionModulos {
-  skillIds: SkillId[]   // conectores eliminados del producto
+  skillIds: SkillId[]
 }
 
 interface ProgresoRoadmap {
   usuarioId: string
   pasos: Record<number, 'pendiente' | 'en-progreso' | 'completo'>
   porcentaje: number
-  identidadCompleta: boolean
+  identidadCompleta: boolean    // ver criterio en progresoService
   tieneDocumentos: boolean      // informativo, ya no bloquea desbloqueado
   checklistCompleto: boolean
   desbloqueado: boolean         // identidadCompleta && checklistCompleto
@@ -394,7 +486,11 @@ interface ProgresoRoadmap {
 
 2. **Fecha/hora del turno de GHL:** el frontend solo recibe `fingerprint`+`calendarId` (no fecha/hora). Esos datos se guardan en `altas.notas` como JSON. Para mostrar fecha y hora en la UI se necesita un webhook GHL "Appointment Booked" → Edge Function → UPDATE en `altas`.
 
-3. **Modelos por defecto:** campo `modeloDefault` definido en `ModeloRequerido` pero sin URLs aún. Cargar archivos en Supabase Storage y completar el campo en `skills.ts`.
+3. **Modelos por defecto:** ya resuelto — viven en `src/assets/<carpeta>/*` y se descubren automáticamente vía `import.meta.glob` en `src/data/fallbackModels.ts`. El campo `modeloDefault` en `ModeloRequerido` quedó sin uso y puede eliminarse.
+
+4. **`DatosEstudio.tsx` legacy:** el componente sigue en el árbol pero no lo usa nadie desde que paso 2 pasa al wizard de 9 instancias. Borrar cuando confirmes que el flujo nuevo cubre todo lo del viejo.
+
+5. **Columnas legacy en `estudios`:** `abogado_responsable` y `matricula` ya no se escriben desde el wizard nuevo (esos datos viven en `abogados`). Todavía se leen en algunos joins de la vista admin (`ListaClientes`, `FichaCliente`) para mostrar "abogado responsable" — habría que migrarlos a leer el primer `abogados` del estudio antes de eliminarlas.
 
 ---
 
@@ -436,19 +532,19 @@ interface ProgresoRoadmap {
 **Migraciones aplicadas:**
 - `fix_progreso_pasos_default_6_steps` — corrige el default de `progreso_roadmap.pasos` de 7 a 6 pasos
 - `handle_new_user_auto_activo` — el trigger `handle_new_user` ahora inserta `perfiles.estado = 'activo'` (antes `'pendiente'`). Los nuevos registros entran ya aprobados y van directo al wizard. La pantalla `PendingScreen` de `RoadmapLayout.tsx` solo bloquea ahora a usuarios con estado `'rechazado'`. La tab `Solicitudes` sigue existiendo por si en el futuro se vuelve a habilitar aprobación manual
+- `alta_estudio_tables` — crea `abogados`, `jurisdicciones` y `respuestas_alta` con RLS cliente + operador. Cascade delete desde `estudios`.
+- `fix_respuestas_alta_updated_at` — el trigger `set_updated_at` setea `NEW.updated_at`, pero la migración original nombró la columna `actualizado_en`. Este fix la renombra a `updated_at` (el service ya la usaba con nombre correcto tras el fix).
 
 **Wipe 2026-06-21:** se borraron todos los registros de prueba (auth.users, perfiles, estudios, documentos, configuracion_modulos, checklist_tecnico, progreso_roadmap, altas) excepto el admin `jorgeduje4@gmail.com` (id `43a8b629-4e16-453f-9990-18cc22b4afd8`). Storage `modelos` y `documentos` quedaron limpios (los `.emptyFolderPlaceholder` que crea el dashboard de Supabase también fueron eliminados).
 
 ---
 
-## ⚠ Pendiente importante — Revisar estructura de skills y carpetas
+## ⚠ Pendientes para producción
 
-Una vez que estén definidas **todas** las skills finales y sus modelos requeridos (no las 13 actuales si cambian), hay que revisar y posiblemente reestructurar:
-
-1. **`src/data/skills.ts`** — el catálogo. Validar IDs, agrupaciones, qué skills llevan modelo (obligatorio/opcional) y cuáles no.
-2. **Carpetas en Storage** (`bucket: modelos`) — los nombres de carpeta están hardcodeados en `skills.ts` (`telegramas`, `demandas`, etc.). Si cambian las skills, hay que coordinar con `documentos.carpeta` (text en DB) y revisar que `recalcularProgreso` siga derivando paso 3 correctamente (`docList.length > 0` o `skillIds.length > 0`).
-3. **Archivos modelo por defecto (`modeloDefault`)** — campo definido en `ModeloRequerido` pero todavía sin URLs. Cuando se decidan los modelos canónicos, subir a Storage público y completar las URLs en `skills.ts`.
-4. **Mapping skill ↔ carpeta** — hoy es 1 skill → 1 modelo → 1 carpeta. Si alguna skill termina necesitando múltiples modelos, hay que extender `ModeloRequerido[]` y la lógica de progreso/checks en `ModulosConectores.tsx` y `recalcularProgreso`.
-5. **Bucket `documentos` (legacy)** — sigue existiendo pero sin uso. Decidir si se elimina del proyecto Supabase o se mantiene por compatibilidad histórica.
-
-Esto está pendiente hasta que el negocio cierre el catálogo definitivo de skills/modelos para producción.
+1. **`formulario-alta-estudio.md`** (fuente de verdad de los campos del wizard) — todavía no está en el repo. Cuando llegue, reemplazar el esqueleto en `src/data/altaEstudio.ts` sin tocar el renderer, context ni la capa de servicios.
+2. **Mapping skill ↔ carpeta múltiple** — hoy es 1 skill → 0..1 modelo → 1 carpeta (con carpetas compartidas). Si alguna skill termina necesitando múltiples modelos con carpetas distintas, hay que extender `ModeloRequerido[]` y revisar `carpetasDeSkills`.
+3. **Generación remota del perfil del estudio** — el `generator.ts` produce el `.md` y el manifiesto en memoria y los ofrece como descarga. Falta la Edge Function que suba el `.md` a Drive y cree la estructura de carpetas remota. Punto marcado como `_puntoIntegracionBackend()` en el generator.
+4. **Columnas legacy en `estudios`** — `abogado_responsable`, `matricula`, `contexto`, `jurisdiccion`, `fuero_principal`. Ya no se escriben, algunas todavía se leen. Migrar consumidores y dropear después.
+5. **Bucket `documentos` (legacy)** — sigue existiendo pero sin uso. Decidir si se elimina.
+6. **Página pública de skills** — el usuario preguntó si querría una `/skills` de marketing con las 21 skills agrupadas por etapa. Hoy solo hay el listado interno del paso 3 del roadmap. Sin decisión.
+7. **`DatosEstudio.tsx`** — huérfano. Borrar cuando se confirme.
