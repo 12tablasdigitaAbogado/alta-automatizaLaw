@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Plus, Trash2, Sparkles, Check, X, Upload, FileText } from 'lucide-react'
+import { Plus, Trash2, Sparkles, Check, X, Upload, FileText, Loader2 } from 'lucide-react'
 import type { FieldDef, EvalCtx } from '@/data/altaEstudio'
 import { campoVisible } from '@/context/AltaEstudioContext'
+import type { Documento } from '@/types'
 import { cn, formatBytes } from '@/lib/utils'
 
 interface Props {
@@ -13,9 +14,11 @@ interface Props {
   // Solo para file
   files?: File[]
   onFilesChange?: (files: File[]) => void
+  documentosGuardados?: Documento[]
+  onEliminarDocumento?: (docId: string) => Promise<void>
 }
 
-export function Field({ field, value, onChange, respuestasInstancia, respuestasGlobales, files, onFilesChange }: Props) {
+export function Field({ field, value, onChange, respuestasInstancia, respuestasGlobales, files, onFilesChange, documentosGuardados, onEliminarDocumento }: Props) {
   const ctx: EvalCtx = { answers: respuestasGlobales, localAnswers: respuestasInstancia }
   if (!campoVisible(field, respuestasInstancia, respuestasGlobales)) return null
 
@@ -38,7 +41,7 @@ export function Field({ field, value, onChange, respuestasInstancia, respuestasG
         />
       )}
 
-      {renderInput({ field, value, onChange, files, onFilesChange, respuestasInstancia, respuestasGlobales })}
+      {renderInput({ field, value, onChange, files, onFilesChange, documentosGuardados, onEliminarDocumento, respuestasInstancia, respuestasGlobales })}
     </div>
   )
 }
@@ -64,7 +67,7 @@ function SugerenciaBox({ sugerencia, onAceptar }: { sugerencia: { texto: string;
   )
 }
 
-function renderInput({ field, value, onChange, files, onFilesChange, respuestasInstancia, respuestasGlobales }: Props) {
+function renderInput({ field, value, onChange, files, onFilesChange, documentosGuardados, onEliminarDocumento, respuestasInstancia, respuestasGlobales }: Props) {
   switch (field.tipo) {
     case 'text':
       return (
@@ -203,6 +206,8 @@ function renderInput({ field, value, onChange, files, onFilesChange, respuestasI
           field={field}
           files={files ?? []}
           onChange={onFilesChange ?? (() => {})}
+          documentosGuardados={documentosGuardados ?? []}
+          onEliminarDocumento={onEliminarDocumento}
         />
       )
     default:
@@ -275,12 +280,24 @@ function RepeatableList({
 
 // ─── File ────────────────────────────────────────────────────────────────────
 
-function FileDrop({ field, files, onChange }: { field: FieldDef; files: File[]; onChange: (files: File[]) => void }) {
+function FileDrop({ field, files, onChange, documentosGuardados, onEliminarDocumento }: {
+  field: FieldDef
+  files: File[]
+  onChange: (files: File[]) => void
+  documentosGuardados: Documento[]
+  onEliminarDocumento?: (docId: string) => Promise<void>
+}) {
   const [hover, setHover] = useState(false)
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null)
   const handleFiles = (list: FileList | null) => {
     if (!list) return
     const nuevos = Array.from(list)
     onChange(field.multiple ? [...files, ...nuevos] : nuevos.slice(0, 1))
+  }
+  const eliminarGuardado = async (docId: string) => {
+    if (!onEliminarDocumento) return
+    setEliminandoId(docId)
+    try { await onEliminarDocumento(docId) } finally { setEliminandoId(null) }
   }
   return (
     <div>
@@ -303,18 +320,50 @@ function FileDrop({ field, files, onChange }: { field: FieldDef; files: File[]; 
           onChange={e => handleFiles(e.target.files)}
         />
       </label>
-      {files.length > 0 && (
+      {(documentosGuardados.length > 0 || files.length > 0) && (
         <div className="mt-2 space-y-1.5">
+          {documentosGuardados.map(doc => {
+            const borrando = eliminandoId === doc.id
+            return (
+              <div
+                key={doc.id}
+                className={cn(
+                  'flex items-center gap-2 bg-bg-3 rounded-lg px-3 py-2 text-sm transition-opacity',
+                  borrando && 'opacity-60'
+                )}
+              >
+                <FileText className="w-4 h-4 text-success/70 shrink-0" />
+                <span className="flex-1 truncate text-text">{doc.nombre}</span>
+                <span className="text-xs text-success/80">
+                  {borrando ? 'eliminando…' : 'guardado'}
+                </span>
+                <span className="text-xs text-text-faint">{formatBytes(doc.tamano)}</span>
+                <button
+                  type="button"
+                  disabled={borrando}
+                  onClick={() => eliminarGuardado(doc.id)}
+                  className="p-1 rounded text-text-faint hover:text-coral hover:bg-coral/10 transition-colors disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-faint"
+                  title={borrando ? 'Eliminando…' : 'Eliminar de la nube'}
+                >
+                  {borrando
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin text-coral" />
+                    : <Trash2 className="w-3.5 h-3.5" />
+                  }
+                </button>
+              </div>
+            )
+          })}
           {files.map((f, i) => (
             <div key={i} className="flex items-center gap-2 bg-bg-3 rounded-lg px-3 py-2 text-sm">
               <FileText className="w-4 h-4 text-teal/60 shrink-0" />
               <span className="flex-1 truncate text-text">{f.name}</span>
+              <span className="text-xs text-text-faint">pendiente</span>
               <span className="text-xs text-text-faint">{formatBytes(f.size)}</span>
               <button
                 type="button"
                 onClick={() => onChange(files.filter((_, idx) => idx !== i))}
                 className="p-1 rounded text-text-faint hover:text-coral hover:bg-coral/10 transition-colors"
-                title="Eliminar"
+                title="Quitar"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

@@ -9,13 +9,8 @@ import type { ClienteResumen } from '@/types'
 import { usuarioService, progresoService } from '@/services'
 import { supabase } from '@/lib/supabase'
 import { carpetasDeSkills } from '@/data/skills'
+import { FALLBACKS_POR_CARPETA } from '@/data/fallbackModels'
 import { LABELS_ESTADO_ALTA, LABEL_CARPETA, cn } from '@/lib/utils'
-
-const FALLBACKS = import.meta.glob('../../assets/modelos-fallback/**/*', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-}) as Record<string, string>
 
 const RUNBOOK: { id: string; label: string }[] = [
   { id: 'drive-estructura', label: 'Crear estructura de carpetas en Drive del estudio' },
@@ -99,26 +94,13 @@ export default function FichaCliente() {
         carpetasConDocs.add(doc.carpeta)
       }))
 
-      const carpetasFallback = Object.entries(FALLBACKS).reduce<Record<string, Record<string, string>>>((acc, [path, url]) => {
-        const match = path.match(/modelos-fallback\/([^/]+)\/([^/]+)$/)
-        if (!match) return acc
-        const [, carpeta, fileName] = match
-        acc[carpeta] = acc[carpeta] ?? {}
-        acc[carpeta][fileName] = url
-        return acc
-      }, {})
-
-      const skillIds = data.configuracion.skillIds ?? []
-      const carpetasEsperadas = new Set(carpetasDeSkills(skillIds).map(m => m.carpeta))
-
-      await Promise.all(Object.entries(carpetasFallback).map(async ([carpeta, files]) => {
+      await Promise.all(Object.entries(FALLBACKS_POR_CARPETA).map(async ([carpeta, modelos]) => {
         if (carpetasConDocs.has(carpeta)) return
-        if (!carpetasEsperadas.has(carpeta)) return
-        await Promise.all(Object.entries(files).map(async ([fileName, url]) => {
-          const res = await fetch(url)
+        await Promise.all(modelos.map(async modelo => {
+          const res = await fetch(modelo.url)
           if (!res.ok) return
           const buf = new Uint8Array(await res.arrayBuffer())
-          archivos[`${nombre}/modelos/${carpeta}/_generico-${fileName}`] = buf
+          archivos[`${nombre}/modelos/${carpeta}/_generico-${modelo.nombre}`] = buf
         }))
       }))
 

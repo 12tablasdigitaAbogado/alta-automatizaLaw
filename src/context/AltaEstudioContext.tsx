@@ -17,6 +17,8 @@ interface Ctx {
   setRespuesta: (instanciaId: string, fieldId: string, valor: Valor) => void
   archivos: Record<string, File[]>
   setArchivos: (fieldId: string, files: File[]) => void
+  documentosGuardados: Record<string, Documento[]>
+  eliminarDocumentoGuardado: (docId: string) => Promise<void>
   progreso: { completadas: Set<string>; porcentaje: number }
   reset: () => void
   loading: boolean
@@ -89,10 +91,21 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
 
   const [respuestas, setRespuestas] = useState<Respuestas>({})
   const [archivos, setArchivosState] = useState<Record<string, File[]>>({})
+  const [documentos, setDocumentos] = useState<Documento[]>([])
   const [instanciaActiva, setInstanciaActivaState] = useState(1)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+
+  const recargarDocumentos = async (idEstudio: string) => {
+    if (!idEstudio) { setDocumentos([]); return }
+    try {
+      const docs = await documentoService.listDocumentos(idEstudio)
+      setDocumentos(docs)
+    } catch (e) {
+      console.warn('[alta-estudio] listDocumentos falló', e)
+    }
+  }
 
   // Load inicial: intento back; si falla, uso el buffer local.
   useEffect(() => {
@@ -112,6 +125,9 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
         } catch (e) {
           console.warn('[alta-estudio] load fallido, uso buffer local', e)
         }
+        await recargarDocumentos(estudioId)
+      } else {
+        setDocumentos([])
       }
       if (!cancelado) setLoading(false)
     }
@@ -162,6 +178,7 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
         await altaEstudioService.saveInstancia(idEstudio, inst.id, payload)
         // Instancia 9: subir archivos pendientes
         if (inst.id === 'modelos-plantillas') {
+          let subioAlgo = false
           for (const { fieldId, carpeta } of CARPETAS_MODELOS) {
             const files = archivos[fieldId] ?? []
             const carpetaDb = carpeta.replace(/^modelos\//, '').replace(/^datos\//, '')
@@ -176,10 +193,12 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
                 archivoLocal: file,
               }
               await documentoService.addDocumento(idEstudio, doc)
+              subioAlgo = true
             }
           }
           // Limpio buffer local de archivos ya subidos
           setArchivosState({})
+          if (subioAlgo) await recargarDocumentos(idEstudio)
         }
       }
     } catch (e) {
@@ -199,6 +218,21 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
   }
 
   const guardarInstanciaActual = () => guardarInstancia(instanciaActiva)
+
+  const documentosGuardados = useMemo(() => {
+    const map: Record<string, Documento[]> = {}
+    for (const { fieldId, carpeta } of CARPETAS_MODELOS) {
+      const carpetaDb = carpeta.replace(/^modelos\//, '').replace(/^datos\//, '')
+      map[fieldId] = documentos.filter(d => d.carpeta === carpetaDb)
+    }
+    return map
+  }, [documentos])
+
+  const eliminarDocumentoGuardado = async (docId: string) => {
+    if (!estudioId) return
+    await documentoService.removeDocumento(estudioId, docId)
+    setDocumentos(prev => prev.filter(d => d.id !== docId))
+  }
 
   const progreso = useMemo(() => {
     const completadas = new Set<string>()
@@ -226,6 +260,8 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
     setRespuesta,
     archivos,
     setArchivos,
+    documentosGuardados,
+    eliminarDocumentoGuardado,
     progreso,
     reset,
     loading,

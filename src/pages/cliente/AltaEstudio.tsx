@@ -107,7 +107,7 @@ function Stepper() {
 }
 
 function WizardBody({ onFinalizar }: { onFinalizar?: () => void }) {
-  const { instancias, instanciaActiva, respuestas, setRespuesta, archivos, setArchivos, loading } = useAltaEstudio()
+  const { instancias, instanciaActiva, respuestas, setRespuesta, archivos, setArchivos, documentosGuardados, eliminarDocumentoGuardado, loading } = useAltaEstudio()
   const inst = instancias[instanciaActiva - 1]
   const local = respuestas[inst.id] ?? {}
   const esUltima = instanciaActiva === instancias.length
@@ -141,6 +141,8 @@ function WizardBody({ onFinalizar }: { onFinalizar?: () => void }) {
             respuestasGlobales={respuestas}
             files={archivos[field.id]}
             onFilesChange={fs => setArchivos(field.id, fs)}
+            documentosGuardados={documentosGuardados[field.id]}
+            onEliminarDocumento={eliminarDocumentoGuardado}
           />
         ))}
       </div>
