@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Plus, Trash2, Sparkles, Check, X, Upload, FileText, Loader2 } from 'lucide-react'
-import type { FieldDef, EvalCtx } from '@/data/altaEstudio'
+import { Plus, Trash2, Check, X, Upload, FileText, Loader2 } from 'lucide-react'
+import type { FieldDef } from '@/data/altaEstudio'
 import { campoVisible } from '@/context/AltaEstudioContext'
 import type { Documento } from '@/types'
 import { cn, formatBytes } from '@/lib/utils'
@@ -19,12 +19,7 @@ interface Props {
 }
 
 export function Field({ field, value, onChange, respuestasInstancia, respuestasGlobales, files, onFilesChange, documentosGuardados, onEliminarDocumento }: Props) {
-  const ctx: EvalCtx = { answers: respuestasGlobales, localAnswers: respuestasInstancia }
   if (!campoVisible(field, respuestasInstancia, respuestasGlobales)) return null
-
-  const sugerencia = field.sugerencia ? field.sugerencia(ctx) : null
-  // Mostrar la sugerencia solo si el campo aún no fue tocado por el usuario.
-  const noRespondido = value === undefined || value === '' || value === null
 
   return (
     <div className="space-y-1.5">
@@ -34,35 +29,7 @@ export function Field({ field, value, onChange, respuestasInstancia, respuestasG
       </label>
       {field.ayuda && <p className="text-xs text-text-faint">{field.ayuda}</p>}
 
-      {sugerencia && noRespondido && (
-        <SugerenciaBox
-          sugerencia={sugerencia}
-          onAceptar={() => onChange(sugerencia.texto)}
-        />
-      )}
-
       {renderInput({ field, value, onChange, files, onFilesChange, documentosGuardados, onEliminarDocumento, respuestasInstancia, respuestasGlobales })}
-    </div>
-  )
-}
-
-function SugerenciaBox({ sugerencia, onAceptar }: { sugerencia: { texto: string; motivo: string }; onAceptar: () => void }) {
-  return (
-    <div className="flex items-start gap-2 bg-teal/8 border border-teal/25 rounded-lg p-2.5 text-sm">
-      <Sparkles className="w-4 h-4 text-teal shrink-0 mt-0.5" />
-      <div className="flex-1 min-w-0">
-        <p className="text-text">
-          Sugerencia: <span className="font-semibold text-teal">{sugerencia.texto}</span>
-        </p>
-        <p className="text-xs text-text-dim mt-0.5">{sugerencia.motivo}</p>
-      </div>
-      <button
-        type="button"
-        onClick={onAceptar}
-        className="text-xs font-medium text-teal hover:text-teal-hover px-2 py-1 rounded-md hover:bg-teal/10 transition-colors shrink-0"
-      >
-        Usar
-      </button>
     </div>
   )
 }

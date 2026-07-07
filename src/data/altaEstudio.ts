@@ -20,12 +20,7 @@ export interface Opcion {
   label: string
 }
 
-export interface Sugerencia {
-  texto: string
-  motivo: string
-}
-
-// Context que se le pasa a showIf / sugerencia:
+// Context que se le pasa a showIf:
 // - answers: todas las respuestas (por instanciaId → fieldId → valor)
 // - localAnswers: respuestas del bloque actual (útil dentro de repeatables)
 export interface EvalCtx {
@@ -47,7 +42,6 @@ export interface FieldDef {
   accept?: string               // solo file
   multiple?: boolean            // solo file
   showIf?: (ctx: EvalCtx) => boolean
-  sugerencia?: (ctx: EvalCtx) => Sugerencia | null
 }
 
 export interface InstanciaDef {
@@ -56,37 +50,6 @@ export interface InstanciaDef {
   titulo: string
   descripcion: string
   campos: FieldDef[]
-}
-
-// ─── Sugerencias por jurisdicción (verificables, nunca automáticas) ───────────
-// El wizard las muestra como "sugerencia" — el abogado siempre confirma activamente.
-
-function sugerenciaInstanciaPrevia(ctx: EvalCtx): Sugerencia | null {
-  const jurisdiccion = String(ctx.localAnswers.nombre ?? '').toLowerCase()
-  if (jurisdiccion.includes('nación') || jurisdiccion.includes('nacion') || jurisdiccion.includes('caba') || jurisdiccion.includes('capital')) {
-    return { texto: 'sí', motivo: 'En Nación / CABA la instancia previa (SECLO) es obligatoria antes de demandar.' }
-  }
-  if (jurisdiccion.includes('buenos aires') || jurisdiccion === 'pba' || jurisdiccion.includes('provincia de buenos aires')) {
-    return { texto: 'no', motivo: 'En Provincia de Buenos Aires no hay instancia prejudicial obligatoria.' }
-  }
-  if (jurisdiccion.includes('córdoba') || jurisdiccion.includes('cordoba')) {
-    return { texto: 'no', motivo: 'En Córdoba no hay instancia prejudicial obligatoria.' }
-  }
-  return null
-}
-
-function sugerenciaPrueba(ctx: EvalCtx): Sugerencia | null {
-  const jurisdiccion = String(ctx.localAnswers.nombre ?? '').toLowerCase()
-  if (jurisdiccion.includes('nación') || jurisdiccion.includes('nacion') || jurisdiccion.includes('caba') || jurisdiccion.includes('capital')) {
-    return { texto: 'acto-separado', motivo: 'En Nación / CABA el ofrecimiento de prueba se hace por acto separado.' }
-  }
-  if (jurisdiccion.includes('buenos aires') || jurisdiccion === 'pba') {
-    return { texto: 'en-demanda', motivo: 'En Provincia de Buenos Aires el ofrecimiento de prueba va en la demanda.' }
-  }
-  if (jurisdiccion.includes('córdoba') || jurisdiccion.includes('cordoba')) {
-    return { texto: 'en-demanda', motivo: 'En Córdoba el ofrecimiento de prueba va en la demanda.' }
-  }
-  return null
 }
 
 // ─── Instancias ───────────────────────────────────────────────────────────────
@@ -111,8 +74,8 @@ export const INSTANCIAS: InstanciaDef[] = [
         obligatorio: true,
         campos: [
           { id: 'nombre',    label: 'Nombre completo',         tipo: 'text', obligatorio: true },
-          { id: 'cuit',      label: 'CUIT',                    tipo: 'text' },
-          { id: 'matricula', label: 'Matrícula',               tipo: 'text', obligatorio: true },
+          { id: 'cuit',      label: 'CUIT',                    tipo: 'text', obligatorio: true },
+          { id: 'matricula', label: 'Matrícula (T° / F°)',     tipo: 'text', obligatorio: true },
           { id: 'colegio',   label: 'Colegio / jurisdicción',  tipo: 'text', obligatorio: true },
         ],
       },
@@ -120,7 +83,7 @@ export const INSTANCIAS: InstanciaDef[] = [
         id: 'pieFirma',
         label: 'Pie de firma para escritos',
         tipo: 'textarea',
-        ayuda: 'Cómo aparece el bloque de firma al pie de cada escrito.',
+        ayuda: 'Cómo aparece al pie de cada presentación: nombre, matrícula, estudio, domicilio, contacto. Si se deja vacío, se arma automáticamente con los datos del abogado 1.',
       },
     ],
   },
@@ -132,7 +95,7 @@ export const INSTANCIAS: InstanciaDef[] = [
     campos: [
       {
         id: 'jurisdicciones',
-        label: 'Jurisdicciones en las que trabajás',
+        label: 'Jurisdicciones en las que trabaja el estudio',
         tipo: 'repeatable',
         itemLabel: 'Jurisdicción',
         minItems: 1,
@@ -140,14 +103,14 @@ export const INSTANCIAS: InstanciaDef[] = [
         campos: [
           {
             id: 'nombre',
-            label: 'Nombre',
+            label: 'Nombre (jurisdicción / fuero / ley procesal)',
             tipo: 'text',
             obligatorio: true,
             placeholder: 'Nación / CABA, Provincia de Buenos Aires, Córdoba, ...',
           },
           {
             id: 'instanciaPrevia',
-            label: '¿Requiere instancia prejudicial obligatoria?',
+            label: '¿Requiere instancia prejudicial obligatoria antes de demandar?',
             tipo: 'radio',
             obligatorio: true,
             opciones: [
@@ -155,7 +118,6 @@ export const INSTANCIAS: InstanciaDef[] = [
               { value: 'no',    label: 'No' },
               { value: 'no-se', label: 'No sé' },
             ],
-            sugerencia: sugerenciaInstanciaPrevia,
           },
           {
             id: 'organismo',
@@ -166,14 +128,13 @@ export const INSTANCIAS: InstanciaDef[] = [
           },
           {
             id: 'ofrecimientoPrueba',
-            label: '¿Cómo va el ofrecimiento de prueba?',
+            label: '¿Cómo se ofrece la prueba en esta jurisdicción?',
             tipo: 'radio',
             obligatorio: true,
             opciones: [
               { value: 'en-demanda',    label: 'En la demanda' },
               { value: 'acto-separado', label: 'Acto separado' },
             ],
-            sugerencia: sugerenciaPrueba,
           },
         ],
       },
@@ -255,15 +216,30 @@ export const INSTANCIAS: InstanciaDef[] = [
         ],
       },
       {
-        id: 'actualizacion',
-        label: 'Actualización de deuda',
+        id: 'actualizacionArt',
+        label: 'Actualización de deuda — tramo ART',
+        tipo: 'text',
+        ayuda: 'Régimen ART (Ley 26.773 / 27.348). Default sugerido: "RIPTE + interés (art. 17 inc. 6 Ley 26.773 / Ley 27.348 — doctrina «Espósito»)".',
+        placeholder: 'RIPTE + interés (art. 17 inc. 6 Ley 26.773 / Ley 27.348 — doctrina «Espósito»)',
+      },
+      {
+        id: 'actualizacionCreditosComunes',
+        label: 'Actualización de deuda — créditos comunes',
         tipo: 'radio',
+        ayuda: 'RIPTE se reserva al tramo ART; para créditos comunes lo estándar hoy, si el estudio adhiere a la Ley 27.802, es IPC+3%.',
         opciones: [
-          { value: 'cer',       label: 'CER' },
-          { value: 'ripte',     label: 'RIPTE' },
-          { value: 'tasa-bcra', label: 'Tasa activa BCRA' },
-          { value: 'otra',      label: 'Otra' },
+          { value: 'ley-27802-ipc',    label: 'Ley 27.802 — IPC (INDEC) + 3% anual (juicios nuevos) / art. 55: tasa pasiva BCRA con techo IPC+3% y piso 67% (juicios en trámite)' },
+          { value: 'actas-cnat',       label: 'Actas CNAT (2764 / 2783 / 2658) según fecha' },
+          { value: 'tasa-activa-bna',  label: 'Tasa activa Banco Nación' },
+          { value: 'ascua',            label: 'Repotenciación / «Ascua» + tasa' },
+          { value: 'otra',             label: 'Otra' },
         ],
+      },
+      {
+        id: 'actualizacionCreditosComunesOtra',
+        label: 'Especificá el criterio de actualización',
+        tipo: 'textarea',
+        showIf: ctx => ctx.localAnswers.actualizacionCreditosComunes === 'otra',
       },
       {
         id: 'fechaCalculo',
@@ -283,7 +259,13 @@ export const INSTANCIAS: InstanciaDef[] = [
     titulo: 'Honorarios',
     descripcion: 'Cómo pactás los honorarios con el cliente.',
     campos: [
-      { id: 'cuotaLitisPorcentaje', label: '% de cuota litis habitual', tipo: 'number', obligatorio: true },
+      {
+        id: 'cuotaLitisPorcentaje',
+        label: '% de cuota litis habitual',
+        tipo: 'number',
+        obligatorio: true,
+        ayuda: 'Tope legal: art. 277 LCT.',
+      },
       {
         id: 'tipoPacto',
         label: 'Tipo de pacto',
@@ -298,8 +280,9 @@ export const INSTANCIAS: InstanciaDef[] = [
       { id: 'condiciones', label: 'Condiciones y cláusulas particulares', tipo: 'textarea' },
       {
         id: 'ley27802',
-        label: '¿Adherís al régimen de Ley 27.802?',
+        label: '¿Adherís al régimen de la Ley 27.802?',
         tipo: 'boolean',
+        ayuda: 'Impacta en el criterio de actualización de créditos comunes (Instancia 5).',
       },
     ],
   },
@@ -309,10 +292,16 @@ export const INSTANCIAS: InstanciaDef[] = [
     titulo: 'Estilo, doctrina y redacción',
     descripcion: 'Cómo escribís y qué doctrina considerás cabecera.',
     campos: [
-      { id: 'fallos',      label: 'Fallos de cabecera (uno por línea)', tipo: 'textarea', placeholder: '"Vizzoti", "Álvarez", "Aquino"...' },
+      {
+        id: 'fallos',
+        label: 'Fallos de cabecera (uno por línea)',
+        tipo: 'textarea',
+        placeholder: 'Ej.: Vizzoti (tope art. 245) · Aquino (art. 39 LRT) · Álvarez c/ Cencosud (discriminación/reinstalación) · Arostegui (reparación integral)',
+        ayuda: 'Se presentan como sugeridos editables, no como cita cerrada. La vigencia se verifica al momento de usarlos.',
+      },
       {
         id: 'tono',
-        label: 'Tono de redacción',
+        label: 'Tono de redacción de escritos',
         tipo: 'radio',
         opciones: [
           { value: 'formal',       label: 'Formal / conservador' },
@@ -323,7 +312,7 @@ export const INSTANCIAS: InstanciaDef[] = [
       },
       {
         id: 'armadoDemanda',
-        label: '¿Cómo armás la demanda?',
+        label: '¿Cómo armás la demanda? (estructura, qué nunca falta)',
         tipo: 'textarea',
         ayuda: 'Estructura, orden de secciones, elementos que no pueden faltar.',
       },
@@ -360,7 +349,14 @@ export const INSTANCIAS: InstanciaDef[] = [
       { id: 'impugnaciones', label: 'Impugnaciones periciales',      tipo: 'file', accept: '.docx,.pdf,.doc,.txt', multiple: true },
       { id: 'honorarios',    label: 'Contrato de honorarios / cuota litis', tipo: 'file', accept: '.docx,.pdf,.doc,.txt', multiple: true },
       { id: 'comunicaciones',label: 'Plantillas de comunicación con clientes', tipo: 'file', accept: '.docx,.pdf,.doc,.txt', multiple: true },
-      { id: 'escalasCct',    label: 'Escalas de CCT (si manejás alguna)', tipo: 'file', accept: '.pdf,.xls,.xlsx,.csv', multiple: true },
+      {
+        id: 'escalasCct',
+        label: 'Escalas de CCT (si manejás alguna)',
+        tipo: 'file',
+        accept: '.pdf,.xls,.xlsx,.csv',
+        multiple: true,
+        ayuda: 'Escalas salariales del/los CCT que maneja el estudio. Las skills de liquidación y diferencias salariales las leen desde acá.',
+      },
     ],
   },
 ]

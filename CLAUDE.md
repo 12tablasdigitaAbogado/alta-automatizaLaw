@@ -265,7 +265,7 @@ La pantalla de "Completá tu setup" en `AgendarAlta.tsx` solo lista **identidad 
 - `pages/cliente/AltaEstudio.tsx` — dos exports:
   - `default` (página `/alta-estudio`, standalone con sticky header)
   - `AltaEstudioEmbedded` (embebido dentro del paso 2 del roadmap, sin sticky, con botón "Continuar al siguiente paso" en la última instancia)
-- `components/altaEstudio/Field.tsx` — renderer polimórfico. Soporta: `text | textarea | number | boolean | radio | multi | select | repeatable | file`. Cada `FieldDef` puede llevar `showIf(ctx)` (condicional) y `sugerencia(ctx)` (sugerencia por jurisdicción, siempre verificable — nunca autofill silencioso; el usuario clickea "Usar").
+- `components/altaEstudio/Field.tsx` — renderer polimórfico. Soporta: `text | textarea | number | boolean | radio | multi | select | repeatable | file`. Cada `FieldDef` puede llevar `showIf(ctx)` (condicional). No hay sugerencias por jurisdicción — el abogado completa los campos manualmente.
 - `context/AltaEstudioContext.tsx` — estado + autosave. Al montar carga desde Supabase (`altaEstudioService.loadAll`) y usa localStorage como buffer offline y prime de respuesta rápida. Al pasar de instancia (`setInstanciaActiva`) dispara `saveInstancia` de la actual (fire & forget con feedback vía `saving` y `saveError`).
 - `lib/altaEstudio/generator.ts` — funciones puras: `generarPerfilEstudio(respuestas)` → markdown; `generarManifiestoCarpetas(respuestas)` → lista de paths; `mapearArchivosACarpetas(archivos)` para el upload final.
 
@@ -285,12 +285,7 @@ La pantalla de "Completá tu setup" en `AgendarAlta.tsx` solo lista **identidad 
 
 **Creación del estudio (Instancia 1 sin `estudioId`):** el context detecta `!estudioId && instancia === datos-estudio` y llama `estudioService.saveEstudio('', ...)` (que a su vez llama la RPC `crear_estudio_inicial`). Después `refreshPerfil()` para propagar el nuevo `estudioId`.
 
-**Sugerencias por jurisdicción (verificables):** en Instancia 2, el nombre de la jurisdicción dispara sugerencias:
-- Nación / CABA → instancia previa: "sí" (SECLO); ofrecimiento de prueba: "acto separado".
-- PBA → sin instancia previa; ofrecimiento en la demanda.
-- Córdoba → sin instancia previa; ofrecimiento en la demanda.
-
-Aparecen como cajita con botón "Usar" — nunca se completan solas. El campo queda vacío hasta que el abogado confirma.
+**Sugerencias por jurisdicción:** eliminadas. El abogado carga manualmente instancia prejudicial, organismo y modalidad de ofrecimiento de prueba para cada jurisdicción — los tres son obligatorios en Instancia 2.
 
 **`instanciaCompleta` (context):** una instancia se considera completada si todos los obligatorios visibles tienen valor **y** (si no hay obligatorios en absoluto) al menos un campo visible tiene valor. Sin este último check, las instancias con puro texto libre (3, 4, 5, 7, 8, 9) aparecían verdes de arranque.
 

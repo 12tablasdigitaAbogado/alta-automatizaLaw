@@ -17,7 +17,11 @@ export function generarPerfilEstudio(respuestas: Respuestas): string {
     if (inst.id === 'modelos-plantillas') continue // los modelos se vuelcan en la estructura de carpetas, no en el .md
     lineas.push(`## ${inst.numero}. ${inst.titulo}`)
     lineas.push('')
-    const local = respuestas[inst.id] ?? {}
+    let local = respuestas[inst.id] ?? {}
+    if (inst.id === 'datos-estudio' && !String(local.pieFirma ?? '').trim()) {
+      const auto = armarPieFirmaAutomatico(local)
+      if (auto) local = { ...local, pieFirma: auto }
+    }
     const bloque = renderCampos(inst.campos, local, respuestas)
     if (bloque.trim() === '') {
       lineas.push('_Pendiente de completar._')
@@ -26,6 +30,29 @@ export function generarPerfilEstudio(respuestas: Respuestas): string {
     }
     lineas.push('')
   }
+
+  return lineas.join('\n')
+}
+
+function armarPieFirmaAutomatico(datosEstudio: Record<string, unknown>): string {
+  const abogados = (datosEstudio.abogados as Record<string, unknown>[] | undefined) ?? []
+  const abo = abogados[0]
+  if (!abo || !String(abo.nombre ?? '').trim()) return ''
+
+  const lineas: string[] = []
+  const nombre = String(abo.nombre).trim()
+  const matricula = String(abo.matricula ?? '').trim()
+  const denominacion = String(datosEstudio.denominacion ?? '').trim()
+  const domicilio = String(datosEstudio.domicilio ?? '').trim()
+  const telefono = String(datosEstudio.telefono ?? '').trim()
+  const email = String(datosEstudio.email ?? '').trim()
+
+  lineas.push(nombre)
+  lineas.push(`Abogado/a${matricula ? ` — ${matricula}` : ''}`)
+  if (denominacion) lineas.push(denominacion)
+  if (domicilio) lineas.push(domicilio)
+  const contacto = [telefono && `Tel. ${telefono}`, email].filter(Boolean).join(' — ')
+  if (contacto) lineas.push(contacto)
 
   return lineas.join('\n')
 }
