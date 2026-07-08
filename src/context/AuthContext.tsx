@@ -94,22 +94,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     init()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'TOKEN_REFRESHED' && !session) {
-        await supabase.auth.signOut()
-        setUsuario(null)
-        return
-      }
-      if (session) {
-        const perfil = await fetchPerfil(session.user.id)
-        setUsuario(perfil)
-      } else {
-        setUsuario(null)
-      }
-      if (event === 'INITIAL_SESSION') {
-        window.clearTimeout(timeoutId)
-        finish()
-      }
+    // IMPORTANTE: el callback de onAuthStateChange NO puede ser async ni
+    // llamar directamente a otras funciones de supabase-js. supabase-js
+    // mantiene un lock interno mientras corre el callback; si adentro
+    // hacemos await de otro método (fetchPerfil hace un query a perfiles),
+    // el lock queda trabado y las llamadas posteriores nunca resuelven.
+    // Síntoma: signIn se completa pero setUsuario nunca ocurre y el
+    // botón queda "Cargando..." hasta que refrescás la página.
+    // Fix: deferimos el trabajo con setTimeout para salir del lock.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      window.setTimeout(async () => {
+        if (cancelled) return
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          await supabase.auth.signOut()
+          if (!cancelled) setUsuario(null)
+          return
+        }
+        if (session) {
+          const perfil = await fetchPerfil(session.user.id)
+          if (!cancelled) setUsuario(perfil)
+        } else {
+          if (!cancelled) setUsuario(null)
+        }
+        if (event === 'INITIAL_SESSION') {
+          window.clearTimeout(timeoutId)
+          finish()
+        }
+      }, 0)
     })
 
     return () => {
@@ -120,8 +131,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw new Error(error.message)
+    // No confiamos solo en onAuthStateChange: si el listener quedara
+    // trabado o lento, el submit termina y el usuario ve el form sin
+    // navegar. Actualizamos el estado acá directamente y dejamos al
+    // listener como red de seguridad (idempotente).
+    if (data.user) {
+      const perfil = await fetchPerfil(data.user.id)
+      setUsuario(perfil)
+    }
   }
 
   const signUp = async (email: string, password: string, nombre: string) => {
