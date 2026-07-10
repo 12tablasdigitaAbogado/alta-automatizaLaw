@@ -33,6 +33,7 @@ interface RoadmapContextValue {
   saveChecklist: (data: ChecklistTecnico) => Promise<void>
   completarPaso: (paso: number) => void
   refrescarProgreso: () => Promise<void>
+  refrescarEstudio: () => Promise<void>
   marcarAltaAgendada: (bookingRef: string) => Promise<void>
 }
 
@@ -68,6 +69,12 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
     if (!activeEstudioId) return
     const p = await progresoService.recalcularProgreso(activeEstudioId)
     setProgreso(p)
+  }, [activeEstudioId])
+
+  const refrescarEstudio = useCallback(async () => {
+    if (!activeEstudioId) return
+    const est = await estudioService.getEstudio(activeEstudioId)
+    if (est) setEstudio(est)
   }, [activeEstudioId])
 
   useEffect(() => {
@@ -169,7 +176,7 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
       pasoActivo, setPasoActivo,
       estudio, documentos, configuracion, contextoEstudio, checklist, progreso, alta, loading,
       saveEstudio, addDocumento, removeDocumento, saveConfiguracion, saveContextoEstudio,
-      saveChecklist, completarPaso, refrescarProgreso, marcarAltaAgendada,
+      saveChecklist, completarPaso, refrescarProgreso, refrescarEstudio, marcarAltaAgendada,
     }}>
       {children}
     </RoadmapContext.Provider>

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Lock, Unlock, CalendarDays, PartyPopper, CalendarCheck } from 'lucide-react'
 import { GhlBooking } from '@/components/shared/GhlBooking'
-import { GhlForm } from '@/components/shared/GhlForm'
 import { useRoadmap } from '@/context/RoadmapContext'
 import { cn } from '@/lib/utils'
 
@@ -105,10 +104,9 @@ export function AgendarAlta() {
             </div>
             <ul className="space-y-1.5">
               {[
-                'Duración: 60 minutos por Google Meet',
+                'Duración: 45 minutos por Google Meet',
                 'El operador configura Claude Desktop con tu contexto',
                 'Instala las skills seleccionadas y conecta los servicios',
-                'Hacen una prueba en vivo con un escrito real',
                 'Al final, tu asistente está 100% operativo',
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-text-dim">
@@ -122,16 +120,6 @@ export function AgendarAlta() {
           <p className="text-sm text-text-dim text-center">
             ¿Necesitás cambiar el horario? Usá el link del email de confirmación para reprogramar.
           </p>
-
-          <div className="pt-2">
-            <h2 className="text-sm font-semibold text-text mb-3">
-              Un último paso: completá este formulario
-            </h2>
-            <p className="text-sm text-text-dim mb-4">
-              Nos ayuda a preparar tu reunión de alta con todo el contexto necesario.
-            </p>
-            <GhlForm />
-          </div>
         </div>
       ) : desbloqueado ? (
         /* Estado: desbloqueado, aún no agendó */
@@ -153,10 +141,9 @@ export function AgendarAlta() {
             </div>
             <ul className="space-y-1.5">
               {[
-                'Duración: 60 minutos por Google Meet',
+                'Duración: 45 minutos por Google Meet',
                 'El operador configura Claude Desktop con tu contexto',
                 'Instala las skills seleccionadas y conecta los servicios',
-                'Hacen una prueba en vivo con un escrito real',
                 'Al final, tu asistente está 100% operativo',
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-text-dim">

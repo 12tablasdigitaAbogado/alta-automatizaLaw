@@ -44,7 +44,7 @@ function armarPieFirmaAutomatico(datosEstudio: Record<string, unknown>): string 
   const matricula = String(abo.matricula ?? '').trim()
   const denominacion = String(datosEstudio.denominacion ?? '').trim()
   const domicilio = String(datosEstudio.domicilio ?? '').trim()
-  const telefono = String(datosEstudio.telefono ?? '').trim()
+  const telefono = String(datosEstudio.telefonoCelular ?? datosEstudio.telefono ?? '').trim()
   const email = String(datosEstudio.email ?? '').trim()
 
   lineas.push(nombre)

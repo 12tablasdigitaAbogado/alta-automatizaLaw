@@ -1,18 +1,11 @@
-import { AlertTriangle, ArrowLeft } from 'lucide-react'
 import { NavPasos } from '@/components/roadmap/NavPasos'
 import { useRoadmap } from '@/context/RoadmapContext'
 import { SKILLS, ETAPAS, skillsPorEtapa } from '@/data/skills'
 
 // Paso 3: informativo. Los modelos ya se piden en el wizard de alta (Instancia 9),
-// acá el cliente ve qué skills tiene y el estado de los modelos.
+// acá el cliente ve qué skills tiene.
 export function ModulosConectores() {
   const { documentos, saveConfiguracion, setPasoActivo, completarPaso } = useRoadmap()
-
-  const skillsFaltantes = SKILLS.filter(skill => {
-    const modelo = skill.modelos[0]
-    if (!modelo || !modelo.obligatorio) return false
-    return documentos.filter(d => d.carpeta === modelo.carpeta).length === 0
-  })
 
   const continuar = async () => {
     await saveConfiguracion({ skillIds: SKILLS.map(s => s.id) })
@@ -28,28 +21,6 @@ export function ModulosConectores() {
           Todo lo que tu asistente va a saber hacer, agrupado por etapa del proceso.
         </p>
       </div>
-
-      {skillsFaltantes.length > 0 && (
-        <div className="flex items-start gap-3 bg-amber-400/8 border border-amber-400/25 rounded-xl p-4 mb-6">
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm text-text">
-              Te faltan modelos obligatorios en {skillsFaltantes.length} {skillsFaltantes.length === 1 ? 'skill' : 'skills'}.
-            </p>
-            <p className="text-xs text-text-dim mt-0.5">
-              Si no los subís, el asistente usa modelos genéricos hasta que los cargues.
-            </p>
-            <button
-              type="button"
-              onClick={() => setPasoActivo(2)}
-              className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-teal hover:text-teal-hover transition-colors"
-            >
-              <ArrowLeft className="w-3 h-3" />
-              Volver al alta e Instancia 9
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="mb-6 space-y-6">
         {ETAPAS.map(etapa => {

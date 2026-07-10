@@ -23,7 +23,9 @@ function rowToEstudio(row: any): Estudio {
     abogadoResponsable: row.abogado_responsable ?? '',
     matricula: row.matricula ?? '',
     domicilio: row.domicilio ?? '',
+    domicilioConstituido: row.domicilio_constituido ?? '',
     telefono: row.telefono ?? '',
+    telefonoFijo: row.telefono_fijo ?? '',
     email: row.email_estudio ?? '',
     estiloRedaccion: row.estilo_redaccion ?? '',
     pieFirma: row.pie_firma ?? '',
@@ -106,7 +108,9 @@ export const estudioService: EstudioService = {
     if (data.abogadoResponsable !== undefined) dbData.abogado_responsable = data.abogadoResponsable
     if (data.matricula !== undefined) dbData.matricula = data.matricula
     if (data.domicilio !== undefined) dbData.domicilio = data.domicilio
+    if (data.domicilioConstituido !== undefined) dbData.domicilio_constituido = data.domicilioConstituido
     if (data.telefono !== undefined) dbData.telefono = data.telefono
+    if (data.telefonoFijo !== undefined) dbData.telefono_fijo = data.telefonoFijo
     if (data.email !== undefined) dbData.email_estudio = data.email
     if (data.estiloRedaccion !== undefined) dbData.estilo_redaccion = data.estiloRedaccion
     if (data.pieFirma !== undefined) dbData.pie_firma = data.pieFirma
@@ -134,6 +138,13 @@ export const estudioService: EstudioService = {
       p_pie_firma:           (dbData.pie_firma           as string) ?? '',
     })
     if (rpcError || !newId) throw new Error(rpcError?.message ?? 'Error creando estudio')
+
+    const extras: Record<string, unknown> = {}
+    if (dbData.domicilio_constituido !== undefined) extras.domicilio_constituido = dbData.domicilio_constituido
+    if (dbData.telefono_fijo !== undefined) extras.telefono_fijo = dbData.telefono_fijo
+    if (Object.keys(extras).length > 0) {
+      await supabase.from('estudios').update(extras).eq('id', newId as string)
+    }
 
     return newId as string
   },
@@ -612,29 +623,40 @@ export const altaEstudioService: AltaEstudioService = {
 
     if (estudioRes.data) {
       const row = estudioRes.data as Record<string, unknown>
+      const abogadosArr = (abogadosRes.data ?? []).map(a => ({
+        nombre:    a.nombre ?? '',
+        cuit:      a.cuit ?? '',
+        matricula: a.matricula ?? '',
+        colegio:   a.colegio ?? '',
+      }))
       respuestas['datos-estudio'] = {
-        denominacion: row.denominacion ?? '',
-        domicilio:    row.domicilio ?? '',
-        telefono:     row.telefono ?? '',
-        email:        row.email_estudio ?? '',
-        pieFirma:     row.pie_firma ?? '',
-        abogados:     (abogadosRes.data ?? []).map(a => ({
-          nombre:    a.nombre ?? '',
-          cuit:      a.cuit ?? '',
-          matricula: a.matricula ?? '',
-          colegio:   a.colegio ?? '',
-        })),
+        denominacion:         row.denominacion ?? '',
+        domicilio:            row.domicilio ?? '',
+        domicilioConstituido: row.domicilio_constituido ?? '',
+        telefonoFijo:         row.telefono_fijo ?? '',
+        telefonoCelular:      row.telefono ?? '',
+        email:                row.email_estudio ?? '',
+        cantidadAbogados:     abogadosArr.length || undefined,
+        pieFirma:             row.pie_firma ?? '',
+        abogados:             abogadosArr,
       }
     }
 
-    if ((jurisdiccionesRes.data ?? []).length > 0) {
+    if (
+      (jurisdiccionesRes.data ?? []).length > 0 ||
+      (estudioRes.data as Record<string, unknown> | null)?.criterio_conveniencia_jurisdiccional ||
+      (estudioRes.data as Record<string, unknown> | null)?.reglas_competencia_jurisdiccional
+    ) {
+      const estudioRow = (estudioRes.data ?? {}) as Record<string, unknown>
       respuestas['jurisdiccion-alcance'] = {
         jurisdicciones: (jurisdiccionesRes.data ?? []).map(j => ({
-          nombre:             j.nombre ?? '',
-          instanciaPrevia:    j.instancia_previa ?? undefined,
-          organismo:          j.organismo ?? '',
-          ofrecimientoPrueba: j.ofrecimiento_prueba ?? undefined,
+          nombre:                  j.nombre ?? '',
+          instanciaPrevia:         j.instancia_previa ?? '',
+          ofrecimientoPrueba:      j.ofrecimiento_prueba ?? '',
+          presentacionElectronica: j.presentacion_electronica ?? '',
         })),
+        reglasCompetencia:    (estudioRow.reglas_competencia_jurisdiccional as string) ?? '',
+        criterioConveniencia: (estudioRow.criterio_conveniencia_jurisdiccional as string) ?? '',
       }
     }
 
@@ -653,12 +675,14 @@ export const altaEstudioService: AltaEstudioService = {
       const { error: eEstudio } = await supabase
         .from('estudios')
         .update({
-          denominacion:  payload.denominacion ?? '',
-          domicilio:     payload.domicilio ?? '',
-          telefono:      payload.telefono ?? '',
-          email_estudio: payload.email ?? '',
-          pie_firma:     payload.pieFirma ?? '',
-          updated_at:    new Date().toISOString(),
+          denominacion:          payload.denominacion ?? '',
+          domicilio:             payload.domicilio ?? '',
+          domicilio_constituido: payload.domicilioConstituido ?? '',
+          telefono:              payload.telefonoCelular ?? '',
+          telefono_fijo:         payload.telefonoFijo ?? '',
+          email_estudio:         payload.email ?? '',
+          pie_firma:             payload.pieFirma ?? '',
+          updated_at:            new Date().toISOString(),
         })
         .eq('id', estudioId)
       if (eEstudio) throw new Error(eEstudio.message)
@@ -684,17 +708,27 @@ export const altaEstudioService: AltaEstudioService = {
     }
 
     if (instanciaId === 'jurisdiccion-alcance') {
+      const { error: eEstudio } = await supabase
+        .from('estudios')
+        .update({
+          reglas_competencia_jurisdiccional:    (payload.reglasCompetencia as string) ?? '',
+          criterio_conveniencia_jurisdiccional: (payload.criterioConveniencia as string) ?? '',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', estudioId)
+      if (eEstudio) throw new Error(eEstudio.message)
+
       const jur = Array.isArray(payload.jurisdicciones) ? (payload.jurisdicciones as Record<string, unknown>[]) : []
       const { error: eDel } = await supabase.from('jurisdicciones').delete().eq('estudio_id', estudioId)
       if (eDel) throw new Error(eDel.message)
       if (jur.length > 0) {
         const filas = jur.map((j, i) => ({
-          estudio_id:          estudioId,
-          nombre:              String(j.nombre ?? ''),
-          instancia_previa:    (j.instanciaPrevia as string) ?? null,
-          organismo:           (j.organismo as string) ?? null,
-          ofrecimiento_prueba: (j.ofrecimientoPrueba as string) ?? null,
-          orden:               i,
+          estudio_id:               estudioId,
+          nombre:                   String(j.nombre ?? ''),
+          instancia_previa:         (j.instanciaPrevia as string) ?? null,
+          ofrecimiento_prueba:      (j.ofrecimientoPrueba as string) ?? null,
+          presentacion_electronica: (j.presentacionElectronica as string) ?? null,
+          orden:                    i,
         }))
         const { error: eIns } = await supabase.from('jurisdicciones').insert(filas)
         if (eIns) throw new Error(eIns.message)
@@ -702,11 +736,13 @@ export const altaEstudioService: AltaEstudioService = {
       return
     }
 
-    // Instancia 9: sin persistence propia acá — los archivos ya se guardan en
-    // documentos vía documentoService.addDocumento cuando el usuario los sube.
-    if (instanciaId === 'modelos-plantillas') return
+    // Instancia 9: los archivos ya se guardan en `documentos` vía
+    // documentoService.addDocumento. Los flags no-archivo (ej.:
+    // `demandaUsarBaseParaTodos`, `telegramaUsarBaseParaTodos`) sí caen en el
+    // upsert de respuestas_alta más abajo — el payload no contiene File objects
+    // porque los archivos viven en el state `archivos` del context, aparte.
 
-    // Instancias 3-8: payload jsonb en respuestas_alta
+    // Instancias 3-9: payload jsonb en respuestas_alta
     const { error } = await supabase
       .from('respuestas_alta')
       .upsert({

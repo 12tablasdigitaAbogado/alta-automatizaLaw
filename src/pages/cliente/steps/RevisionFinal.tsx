@@ -1,11 +1,17 @@
-import { CheckCircle2, AlertCircle, AlertTriangle, Building2, FolderOpen, Puzzle, ClipboardCheck } from 'lucide-react'
+import { useEffect } from 'react'
+import { CheckCircle2, AlertCircle, Building2, FolderOpen, Puzzle, ClipboardCheck } from 'lucide-react'
 import { NavPasos } from '@/components/roadmap/NavPasos'
 import { useRoadmap } from '@/context/RoadmapContext'
 import { SKILL_MAP, carpetasDeSkills } from '@/data/skills'
 import { LABEL_CARPETA, cn } from '@/lib/utils'
 
 export function RevisionFinal() {
-  const { estudio, documentos, configuracion, contextoEstudio, checklist, progreso, setPasoActivo, completarPaso } = useRoadmap()
+  const { estudio, documentos, configuracion, contextoEstudio, checklist, progreso, setPasoActivo, completarPaso, refrescarEstudio } = useRoadmap()
+
+  // El wizard de 9 instancias escribe en `estudios` directo vía altaEstudioService,
+  // sin pasar por RoadmapContext.saveEstudio, así que el `estudio` local puede estar
+  // stale. Refrescamos al entrar acá para reflejar los datos actuales.
+  useEffect(() => { refrescarEstudio() }, [refrescarEstudio])
 
   const handleSiguiente = () => {
     completarPaso(5)
@@ -53,16 +59,6 @@ export function RevisionFinal() {
             <button onClick={() => setPasoActivo(4)} className="ml-auto text-sm text-coral hover:underline shrink-0">Ir al paso 4</button>
           </div>
         )}
-        {!modelosOk && (
-          <div className="flex items-start gap-3 bg-amber-400/5 border border-amber-400/20 rounded-xl px-4 py-3">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-amber-400 font-medium">Algunas skills no tienen modelo cargado</p>
-              <p className="text-sm text-text-dim mt-0.5">Se usará un modelo genérico en esos casos.</p>
-            </div>
-            <button onClick={() => setPasoActivo(3)} className="ml-auto text-sm text-amber-400 hover:underline shrink-0">Ir al paso 3</button>
-          </div>
-        )}
       </div>
 
       {/* Identidad */}
@@ -71,21 +67,23 @@ export function RevisionFinal() {
           <Building2 className="w-4 h-4 text-text-dim" />
           <h2 className="text-sm font-semibold text-text">Identidad del estudio</h2>
         </div>
-        {estudio.denominacion ? (
+        {identidadCompleta ? (
           <div className="grid grid-cols-2 gap-3 text-sm">
             {([
-              ['Denominación', estudio.denominacion],
-              ['Abogado/a', estudio.abogadoResponsable],
-              ['Matrícula', estudio.matricula],
-              ['Domicilio', estudio.domicilio],
-              ['Teléfono', estudio.telefono],
+              ['Nombre del estudio', estudio.denominacion],
+              ['Domicilio real', estudio.domicilio],
+              ['Domicilio constituido', estudio.domicilioConstituido],
+              ['Teléfono celular', estudio.telefono],
+              ['Teléfono fijo', estudio.telefonoFijo],
               ['Email', estudio.email],
-            ] as [string, string | undefined][]).map(([k, v]) => (
-              <div key={k}>
-                <p className="text-sm text-text-faint mb-0.5">{k}</p>
-                <p className="text-text truncate">{v || '—'}</p>
-              </div>
-            ))}
+            ] as [string, string | undefined][])
+              .filter(([, v]) => v)
+              .map(([k, v]) => (
+                <div key={k}>
+                  <p className="text-sm text-text-faint mb-0.5">{k}</p>
+                  <p className="text-text truncate">{v}</p>
+                </div>
+              ))}
           </div>
         ) : (
           <EmptyState paso={2} label="Completá los datos del estudio" onClick={() => setPasoActivo(2)} />
@@ -128,9 +126,6 @@ export function RevisionFinal() {
                   <p className="text-sm text-text-dim font-medium">
                     {LABEL_CARPETA[c.carpeta] ?? c.carpeta}
                   </p>
-                  {c.obligatorio && !c.ok && (
-                    <span className="text-sm text-coral">faltan archivos</span>
-                  )}
                 </div>
                 {c.docs.length > 0 ? (
                   <div className="space-y-1 pl-2">

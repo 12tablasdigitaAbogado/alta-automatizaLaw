@@ -83,9 +83,9 @@ src/
 | Tabla | Descripción | Columnas clave |
 |-------|-------------|----------------|
 | `perfiles` | 1:1 con `auth.users` | `id` (= auth.uid), `nombre`, `email`, `rol`, `estado`, `estudio_id` |
-| `estudios` | Datos del estudio jurídico | `id` (UUID), `perfil_id`, `denominacion`, `abogado_responsable`*, `matricula`*, `domicilio`, `telefono`, `email_estudio`, `estilo_redaccion`, `pie_firma`, `contexto` (jsonb) |
+| `estudios` | Datos del estudio jurídico | `id` (UUID), `perfil_id`, `denominacion`, `abogado_responsable`*, `matricula`*, `domicilio`, `domicilio_constituido`, `telefono` (celular), `telefono_fijo`, `email_estudio`, `estilo_redaccion`, `pie_firma`, `reglas_competencia_jurisdiccional`, `criterio_conveniencia_jurisdiccional`, `contexto` (jsonb) |
 | `abogados` | Equipo del estudio (Instancia 1 del alta) | `id` (UUID), `estudio_id`, `nombre`, `cuit`, `matricula`, `colegio`, `orden` |
-| `jurisdicciones` | Jurisdicciones en las que trabaja (Instancia 2) | `id` (UUID), `estudio_id`, `nombre`, `instancia_previa` (`si\|no\|no-se`), `organismo`, `ofrecimiento_prueba` (`en-demanda\|acto-separado`), `orden` |
+| `jurisdicciones` | Jurisdicciones en las que trabaja (Instancia 2) | `id` (UUID), `estudio_id`, `nombre`, `instancia_previa` (text libre), `ofrecimiento_prueba` (text libre), `presentacion_electronica`, `orden` |
 | `respuestas_alta` | Payload jsonb para instancias 3-8 | PK `(estudio_id, instancia_id)`, `payload` (jsonb), `updated_at` |
 | `documentos` | Archivos modelo subidos (incluye Instancia 9) | `id` (UUID), `estudio_id`, `carpeta` (text), `nombre`, `tamano`, `fecha`, `storage_path` |
 | `configuracion_modulos` | Skills activas | `estudio_id`, `modulos` (jsonb array de SkillId), `conectores` (jsonb — columna legacy, ya no se usa) |
@@ -273,19 +273,33 @@ La pantalla de "Completá tu setup" en `AgendarAlta.tsx` solo lista **identidad 
 
 | # | ID | Guarda en |
 |---|----|-----------|
-| 1 | `datos-estudio` | `estudios` (identidad) + `abogados[]` (delete + insert) |
-| 2 | `jurisdiccion-alcance` | `jurisdicciones[]` (delete + insert) |
+| 1 | `datos-estudio` | `estudios` (identidad + `domicilio_constituido`, `telefono` (celular), `telefono_fijo`, `pie_firma`) + `abogados[]` (delete + insert) |
+| 2 | `jurisdiccion-alcance` | `jurisdicciones[]` (delete + insert) + `estudios.reglas_competencia_jurisdiccional` + `estudios.criterio_conveniencia_jurisdiccional` |
 | 3 | `mapa-proceso` | `respuestas_alta` payload jsonb |
 | 4 | `casos-que-toma` | `respuestas_alta` payload jsonb |
 | 5 | `criterios-liquidacion` | `respuestas_alta` payload jsonb |
 | 6 | `honorarios` | `respuestas_alta` payload jsonb |
 | 7 | `estilo-doctrina` | `respuestas_alta` payload jsonb |
 | 8 | `comunicacion-clientes` | `respuestas_alta` payload jsonb |
-| 9 | `modelos-plantillas` | files → `documentos` + Storage (bucket `modelos`) vía `documentoService.addDocumento` |
+| 9 | `modelos-plantillas` | files → `documentos` + Storage (bucket `modelos`) vía `documentoService.addDocumento` — **pendiente rediseño más desglosado** |
 
-**Creación del estudio (Instancia 1 sin `estudioId`):** el context detecta `!estudioId && instancia === datos-estudio` y llama `estudioService.saveEstudio('', ...)` (que a su vez llama la RPC `crear_estudio_inicial`). Después `refreshPerfil()` para propagar el nuevo `estudioId`.
+**Creación del estudio (Instancia 1 sin `estudioId`):** el context detecta `!estudioId && instancia === datos-estudio` y llama `estudioService.saveEstudio('', ...)` (que a su vez llama la RPC `crear_estudio_inicial`) y luego hace un UPDATE post-RPC para columnas nuevas que no pasan por la RPC (`domicilio_constituido`, `telefono_fijo`). Después `refreshPerfil()` para propagar el nuevo `estudioId`.
 
-**Sugerencias por jurisdicción:** eliminadas. El abogado carga manualmente instancia prejudicial, organismo y modalidad de ofrecimiento de prueba para cada jurisdicción — los tres son obligatorios en Instancia 2.
+**Campos por instancia (schema en `src/data/altaEstudio.ts`):**
+
+- **Ins.1 — Datos del estudio:** `denominacion` ("Nombre del estudio"), `domicilio` (real), `domicilioConstituido` (opcional), `telefonoFijo` (opcional), `telefonoCelular` (con ayuda "prefijo sin 0 y número sin 15"), `email`, `cantidadAbogados` (number), `abogados[]` (repeatable: nombre, cuit, matricula, colegio), `pieFirma` (textarea).
+- **Ins.2 — Jurisdicción y alcance geográfico:** repeatable `jurisdicciones[]` con `nombre` + `instanciaPrevia` (textarea libre, antes radio + `organismo` — ahora unificado) + `presentacionElectronica` (opcional) + `ofrecimientoPrueba` (textarea libre, antes radio); nivel-instancia `reglasCompetencia` (textarea, obligatorio) y `criterioConveniencia` (textarea, opcional) — ambos aparecen sólo si `jurisdicciones.length > 1` (`showIf`).
+- **Ins.3 — Mapa del proceso:** `etapas` (multi, 16 checkboxes desde "Firma pacto honorarios" hasta "Acuerdo conciliatorio en cualquier momento") + `particularidades` (textarea).
+- **Ins.4 — Qué casos toma el estudio:** `sectores` (multi: privado/público), `sectoresNoAtender`, `antiguedadMinima` (text libre, opcional), `pisoMontoReclamo` (number, opcional), `consultoOtroAbogado` (textarea con placeholder "Sí · No · Depende"), `otroCriterio` (opcional).
+- **Ins.5 — Criterios de liquidación:** `reparacionIntegral` (textarea Sí/No/Depende), `reparacionIntegralCriterio` (opcional), `inconstitucionalidadDerogaciones` (textarea Sí/No/Depende), `preferenciaActualizacion` (opcional), `fechaCalculo` (multi: capital histórico / actualizado presentación), `otroCriterio`.
+- **Ins.6 — Honorarios:** `cuotaLitisPorcentaje` (number), `tipoPacto` (multi: pacto cuota litis / contrato honorarios aparte), `condicionParticularPacto` (opcional), `ley27802Postura` (radio: mencionarlo / no mencionarlo / sin preferencia), `otroDato`.
+- **Ins.7 — Estilo, doctrina y redacción:** `referenciasDoctrina` (opcional, textarea; PDFs van a Ins.9), `tonoRedaccion` (radio: formal-tradicional / directo), `armadoDemandaPreferencia` (radio: completa / por bloques / sin preferencia, opcional), `otroDato`.
+- **Ins.8 — Comunicación con clientes:** `tonoComunicacion` (textarea), `plantillasComunicacion` (radio: sí-cargar / no-usar-estandar), `otroDato`.
+- **Ins.9 — Modelos y plantillas:** rediseñada 2026-07 con 9 secciones y ~34 sub-categorías, todas opcionales. Sections agrupadas con nuevo `FieldType='section'` (header + descripción, sin input). Estructura: Demandas · Telegramas/CD · Liquidación · Honorarios · Pericial · Escritos de trámite (11 tipos) · Ofrecimiento de prueba · Alegato y recursos · Otros (escalas CCT, multi-archivo). Cada `fieldId` mapea a una sub-carpeta en `CARPETAS_MODELOS` con paths tipo `modelos/demandas/despido-sin-causa`. **Demandas y Telegramas** tienen un toggle intuitivo arriba (`demandaUsarBaseUnica` / `telegramaUsarBaseUnica`, boolean): si el usuario lo tilda, se muestra un único file field "Modelo base" y se ocultan los per-tipo vía `showIf`; si no, se ocultan el toggle-file base y aparecen los per-tipo. Los flags booleanos se persisten en `respuestas_alta.payload` (el early-return de la Ins.9 en `saveInstancia` fue eliminado — los file fields van a `documentos` vía `documentoService.addDocumento` y los flags no-file caen en el upsert general de `respuestas_alta`).
+
+**Regla de obligatoriedad:** un campo es `obligatorio: true` salvo que el spec del cliente diga "opcional" explícito.
+
+**Sugerencias por jurisdicción:** eliminadas. El abogado carga manualmente todo para cada jurisdicción.
 
 **`instanciaCompleta` (context):** una instancia se considera completada si todos los obligatorios visibles tienen valor **y** (si no hay obligatorios en absoluto) al menos un campo visible tiene valor. Sin este último check, las instancias con puro texto libre (3, 4, 5, 7, 8, 9) aparecían verdes de arranque.
 
@@ -529,6 +543,11 @@ interface ProgresoRoadmap {
 - `handle_new_user_auto_activo` — el trigger `handle_new_user` ahora inserta `perfiles.estado = 'activo'` (antes `'pendiente'`). Los nuevos registros entran ya aprobados y van directo al wizard. La pantalla `PendingScreen` de `RoadmapLayout.tsx` solo bloquea ahora a usuarios con estado `'rechazado'`. La tab `Solicitudes` sigue existiendo por si en el futuro se vuelve a habilitar aprobación manual
 - `alta_estudio_tables` — crea `abogados`, `jurisdicciones` y `respuestas_alta` con RLS cliente + operador. Cascade delete desde `estudios`.
 - `fix_respuestas_alta_updated_at` — el trigger `set_updated_at` setea `NEW.updated_at`, pero la migración original nombró la columna `actualizado_en`. Este fix la renombra a `updated_at` (el service ya la usaba con nombre correcto tras el fix).
+- `estudios_add_telefono_fijo_and_domicilio_constituido` (2026-07) — agrega `estudios.telefono_fijo` y `estudios.domicilio_constituido`. La columna `estudios.telefono` conserva el celular (no se renombró para no romper joins admin).
+- `jurisdicciones_reshape_instancia_2` (2026-07) — dropea `jurisdicciones.ofrecimiento_prueba` (era radio), agrega `jurisdicciones.reglas_competencia` y `jurisdicciones.presentacion_electronica`, agrega `estudios.criterio_conveniencia_jurisdiccional`.
+- `move_reglas_competencia_to_estudios` (2026-07) — mueve `reglas_competencia` de `jurisdicciones` a `estudios.reglas_competencia_jurisdiccional` (pasó a ser transversal, no per-jurisdicción).
+- `jurisdicciones_drop_organismo` (2026-07) — dropea `jurisdicciones.organismo`. La instancia previa dejó de ser radio + campo condicional y pasó a ser textarea único que incluye organismo si aplica.
+- `jurisdicciones_add_ofrecimiento_prueba_text` (2026-07) — re-agrega `jurisdicciones.ofrecimiento_prueba` como text libre (antes era radio con dos opciones).
 
 **Wipe 2026-06-21:** se borraron todos los registros de prueba (auth.users, perfiles, estudios, documentos, configuracion_modulos, checklist_tecnico, progreso_roadmap, altas) excepto el admin `jorgeduje4@gmail.com` (id `43a8b629-4e16-453f-9990-18cc22b4afd8`). Storage `modelos` y `documentos` quedaron limpios (los `.emptyFolderPlaceholder` que crea el dashboard de Supabase también fueron eliminados).
 
