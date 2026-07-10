@@ -21,13 +21,22 @@ interface Props {
 export function Field({ field, value, onChange, respuestasInstancia, respuestasGlobales, files, onFilesChange, documentosGuardados, onEliminarDocumento }: Props) {
   if (!campoVisible(field, respuestasInstancia, respuestasGlobales)) return null
 
+  if (field.tipo === 'section') {
+    return (
+      <div className="mt-4 pt-4 border-t border-border-soft">
+        <h3 className="text-base font-semibold text-text">{field.label}</h3>
+        {field.ayuda && <p className="text-sm text-white/85 leading-relaxed mt-1">{field.ayuda}</p>}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-1.5">
       <label className="block text-sm font-medium text-text">
         {field.label}
         {field.obligatorio && <span className="text-coral ml-1">*</span>}
       </label>
-      {field.ayuda && <p className="text-xs text-text-faint">{field.ayuda}</p>}
+      {field.ayuda && <p className="text-xs text-white/85 leading-relaxed">{field.ayuda}</p>}
 
       {renderInput({ field, value, onChange, files, onFilesChange, documentosGuardados, onEliminarDocumento, respuestasInstancia, respuestasGlobales })}
     </div>
@@ -134,7 +143,7 @@ function renderInput({ field, value, onChange, files, onFilesChange, documentosG
               >
                 <span className={cn(
                   'w-4 h-4 rounded border flex items-center justify-center shrink-0',
-                  checked ? 'border-teal bg-teal' : 'border-border'
+                  checked ? 'border-teal bg-teal' : 'border-white'
                 )}>
                   {checked && <Check className="w-3 h-3 text-bg" />}
                 </span>

@@ -166,11 +166,13 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
       // Instancia 1 sin estudio previo → crear vía RPC existente
       if (inst.id === 'datos-estudio' && !idEstudio) {
         idEstudio = await estudioService.saveEstudio('', {
-          denominacion:  (payload.denominacion as string) ?? '',
-          domicilio:     (payload.domicilio    as string) ?? '',
-          telefono:      (payload.telefono     as string) ?? '',
-          email:         (payload.email        as string) ?? '',
-          pieFirma:      (payload.pieFirma     as string) ?? '',
+          denominacion:         (payload.denominacion         as string) ?? '',
+          domicilio:            (payload.domicilio            as string) ?? '',
+          domicilioConstituido: (payload.domicilioConstituido as string) ?? '',
+          telefono:             (payload.telefonoCelular      as string) ?? '',
+          telefonoFijo:         (payload.telefonoFijo         as string) ?? '',
+          email:                (payload.email                as string) ?? '',
+          pieFirma:             (payload.pieFirma             as string) ?? '',
         })
         await refreshPerfil()
       }

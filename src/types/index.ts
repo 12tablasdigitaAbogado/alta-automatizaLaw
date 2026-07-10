@@ -20,7 +20,9 @@ export interface Estudio {
   abogadoResponsable: string
   matricula: string
   domicilio: string
+  domicilioConstituido?: string
   telefono: string
+  telefonoFijo?: string
   email: string
   estiloRedaccion: string
   pieFirma: string
@@ -50,9 +52,9 @@ export interface Abogado {
 export interface Jurisdiccion {
   id?: string
   nombre: string
-  instanciaPrevia?: 'si' | 'no' | 'no-se'
-  organismo?: string
-  ofrecimientoPrueba?: 'en-demanda' | 'acto-separado'
+  instanciaPrevia?: string
+  ofrecimientoPrueba?: string
+  presentacionElectronica?: string
 }
 
 // Estado del wizard de alta: respuestas por instancia.
