@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 
 const GHL_SCRIPT_SRC = 'https://link.msgsndr.com/js/form_embed.js'
-const BOOKING_ID = 'MCiMeiA5XZrpfOh7XCSX'
+const BOOKING_ID = 'l0XUdXwTd0PbbRsFvYZT'
 
 export function GhlBooking() {
   const iframeId = useMemo(() => `${BOOKING_ID}_${Date.now()}`, [])

@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertCircle, AlertTriangle, Building2, FolderOpen, Puzzle, ClipboardCheck } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Building2, FolderOpen, Puzzle, ClipboardCheck } from 'lucide-react'
 import { NavPasos } from '@/components/roadmap/NavPasos'
 import { useRoadmap } from '@/context/RoadmapContext'
 import { SKILL_MAP, carpetasDeSkills } from '@/data/skills'
@@ -51,16 +51,6 @@ export function RevisionFinal() {
             <AlertCircle className="w-4 h-4 text-coral shrink-0" />
             <p className="text-sm text-coral font-medium">Falta completar el checklist técnico</p>
             <button onClick={() => setPasoActivo(4)} className="ml-auto text-sm text-coral hover:underline shrink-0">Ir al paso 4</button>
-          </div>
-        )}
-        {!modelosOk && (
-          <div className="flex items-start gap-3 bg-amber-400/5 border border-amber-400/20 rounded-xl px-4 py-3">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-amber-400 font-medium">Algunas skills no tienen modelo cargado</p>
-              <p className="text-sm text-text-dim mt-0.5">Se usará un modelo genérico en esos casos.</p>
-            </div>
-            <button onClick={() => setPasoActivo(3)} className="ml-auto text-sm text-amber-400 hover:underline shrink-0">Ir al paso 3</button>
           </div>
         )}
       </div>
@@ -128,9 +118,6 @@ export function RevisionFinal() {
                   <p className="text-sm text-text-dim font-medium">
                     {LABEL_CARPETA[c.carpeta] ?? c.carpeta}
                   </p>
-                  {c.obligatorio && !c.ok && (
-                    <span className="text-sm text-coral">faltan archivos</span>
-                  )}
                 </div>
                 {c.docs.length > 0 ? (
                   <div className="space-y-1 pl-2">
