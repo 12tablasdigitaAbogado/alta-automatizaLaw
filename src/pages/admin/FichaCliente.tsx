@@ -83,6 +83,7 @@ export default function FichaCliente() {
       const nombre = data.estudio.denominacion || 'estudio'
       const archivos: Record<string, Uint8Array> = {
         [`${nombre}/perfil_estudio.md`]: strToU8(generarContextoMd(data)),
+        [`${nombre}/clientes/.gitkeep`]: strToU8(''),
       }
 
       const carpetasConDocs = new Set<string>()
