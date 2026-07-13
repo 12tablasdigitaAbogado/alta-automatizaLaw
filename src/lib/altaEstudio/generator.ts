@@ -90,12 +90,13 @@ function formatearCampo(campo: FieldDef, valor: unknown, todas: Respuestas, nive
       return `${heading} ${campo.label}\n${label}`
     }
     case 'multi': {
-      const arr = (valor as string[]) ?? []
+      const arr = Array.isArray(valor) ? (valor as string[]) : []
+      if (arr.length === 0) return ''
       const labels = arr.map(v => campo.opciones?.find(o => o.value === v)?.label ?? v)
       return `${heading} ${campo.label}\n${labels.map(l => `- ${l}`).join('\n')}`
     }
     case 'repeatable': {
-      const items = (valor as Record<string, unknown>[]) ?? []
+      const items = Array.isArray(valor) ? (valor as Record<string, unknown>[]) : []
       const sub = items.map((item, i) => {
         const cuerpo = renderCampos(campo.campos ?? [], item, todas, nivel + 1)
         return `**${campo.itemLabel ?? 'Ítem'} ${i + 1}**\n\n${cuerpo}`
