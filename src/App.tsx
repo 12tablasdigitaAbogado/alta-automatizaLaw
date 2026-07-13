@@ -5,8 +5,6 @@ import RoadmapLayout from '@/pages/cliente/RoadmapLayout'
 import AdminLayout from '@/pages/admin/AdminLayout'
 import ListaClientes from '@/pages/admin/ListaClientes'
 import FichaCliente from '@/pages/admin/FichaCliente'
-import Agenda from '@/pages/admin/Agenda'
-import Solicitudes from '@/pages/admin/Solicitudes'
 import TestGHL from '@/pages/TestGHL'
 import AltaEstudio from '@/pages/cliente/AltaEstudio'
 import { useAuth } from '@/context/AuthContext'
@@ -56,10 +54,8 @@ function AppRoutes() {
       />
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<Navigate to="clientes" replace />} />
-        <Route path="solicitudes" element={<Solicitudes />} />
         <Route path="clientes" element={<ListaClientes />} />
         <Route path="clientes/:id" element={<FichaCliente />} />
-        <Route path="agenda" element={<Agenda />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

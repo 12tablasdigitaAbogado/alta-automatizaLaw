@@ -1,12 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { Users, CalendarDays, LogOut, Zap, Clock, X } from 'lucide-react'
+import { Users, LogOut, Zap, X } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 
 const NAV = [
-  { to: '/admin/solicitudes', icon: Clock, label: 'Solicitudes' },
   { to: '/admin/clientes', icon: Users, label: 'Clientes' },
-  { to: '/admin/agenda', icon: CalendarDays, label: 'Agenda' },
 ]
 
 export function SidebarAdmin({ onClose }: { onClose?: () => void }) {
