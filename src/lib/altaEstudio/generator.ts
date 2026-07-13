@@ -127,7 +127,6 @@ export function generarManifiestoCarpetas(_respuestas: Respuestas): ManifestoCar
     { path: 'modelos/impugnaciones', descripcion: 'Impugnaciones periciales.' },
     { path: 'modelos/honorarios',    descripcion: 'Contratos de honorarios y pacto de cuota litis.' },
     { path: 'modelos/comunicaciones',descripcion: 'Plantillas de comunicación con clientes.' },
-    { path: 'datos/escalas-cct',     descripcion: 'Escalas salariales de CCT propias del estudio.' },
     { path: 'clientes',              descripcion: 'Un subdirectorio por cliente / expediente.' },
   ]
   return carpetasBase
