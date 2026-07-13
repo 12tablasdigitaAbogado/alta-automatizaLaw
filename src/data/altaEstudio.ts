@@ -609,21 +609,6 @@ export const INSTANCIAS: InstanciaDef[] = [
       },
       { id: 'alegatoModelo',         label: 'Modelo de alegato.',                                        tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
       { id: 'recursoApelacionModelo',label: 'Modelo de expresión de agravios / recurso de apelación.',   tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-
-      // ─── Otros ─────────────────────────────────────────────────────────────
-      {
-        id: 'sectionOtros',
-        tipo: 'section',
-        label: 'Otros',
-      },
-      {
-        id: 'escalasCct',
-        label: 'Escalas salariales de los CCT que maneja el estudio, si las tienen digitalizadas.',
-        tipo: 'file',
-        accept: '.pdf,.xls,.xlsx,.csv',
-        multiple: true,
-        ayuda: 'Puede ser más de un archivo. Las skills de liquidación y diferencias salariales las leen desde acá.',
-      },
     ],
   },
 ]
@@ -686,7 +671,4 @@ export const CARPETAS_MODELOS: { fieldId: string; carpeta: string }[] = [
   // Alegato y recursos
   { fieldId: 'alegatoModelo',          carpeta: 'modelos/alegato' },
   { fieldId: 'recursoApelacionModelo', carpeta: 'modelos/recurso-apelacion' },
-
-  // Otros
-  { fieldId: 'escalasCct', carpeta: 'datos/escalas-cct' },
 ]

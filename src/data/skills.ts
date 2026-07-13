@@ -162,17 +162,9 @@ const intimacion: Skill[] = [
   {
     id: 'liquidacion-rubros',
     nombre: 'Liquidación de Rubros',
-    descripcion: 'Calcula la indemnización en modo preliminar, para demanda o actualizada. El motor de cálculo viene incluido; el estudio solo aporta escalas de CCT propias si las tiene.',
+    descripcion: 'Calcula la indemnización en modo preliminar, para demanda o actualizada. El motor de cálculo viene incluido.',
     etapa: 'intimacion',
-    modelos: [
-      {
-        carpeta: 'escalas-cct',
-        label: 'Escalas salariales de CCT (opcional)',
-        ejemplo: 'Escala vigente del CCT 130/75, 389/04, etc. Solo si el estudio maneja CCTs específicos.',
-        obligatorio: false,
-        minArchivos: 0,
-      },
-    ],
+    modelos: [],
     contexto: [],
   },
   {

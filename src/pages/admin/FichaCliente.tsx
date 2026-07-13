@@ -6,11 +6,12 @@ import {
 } from 'lucide-react'
 import { zip, strToU8 } from 'fflate'
 import type { ClienteResumen } from '@/types'
-import { usuarioService, progresoService } from '@/services'
+import { usuarioService, progresoService, altaEstudioService } from '@/services'
 import { supabase } from '@/lib/supabase'
 import { carpetasDeSkills } from '@/data/skills'
 import { FALLBACKS_POR_CARPETA } from '@/data/fallbackModels'
 import { LABELS_ESTADO_ALTA, LABEL_CARPETA, cn } from '@/lib/utils'
+import { generarPerfilEstudio } from '@/lib/altaEstudio/generator'
 
 const RUNBOOK: { id: string; label: string }[] = [
   { id: 'drive-estructura', label: 'Crear estructura de carpetas en Drive del estudio' },
@@ -20,26 +21,9 @@ const RUNBOOK: { id: string; label: string }[] = [
   { id: 'skill-validar', label: 'Probar una skill para validar que lee los modelos del Drive' },
 ]
 
-function generarContextoMd(data: ClienteResumen): string {
-  const { estudio, contexto } = data
-
-  const lineasContexto = Object.entries(contexto)
-    .filter(([, v]) => v?.trim())
-    .map(([k, v]) => `- ${k}: ${v}`)
-    .join('\n')
-
-  return `# ${estudio.denominacion || 'Estudio'}
-
-## Identidad
-- Abogado/a responsable: ${estudio.abogadoResponsable || '—'}
-- Matrícula: ${estudio.matricula || '—'}
-- Domicilio: ${estudio.domicilio || '—'}
-- Teléfono: ${estudio.telefono || '—'}
-- Email: ${estudio.email || '—'}
-${estudio.estiloRedaccion ? `\n## Estilo de redacción\n${estudio.estiloRedaccion}` : ''}
-${estudio.pieFirma ? `\n## Pie de firma\n${estudio.pieFirma}` : ''}
-${lineasContexto ? `\n## Contexto laboral\n${lineasContexto}` : ''}
-`.trim()
+async function construirPerfilMd(estudioId: string): Promise<string> {
+  const respuestas = await altaEstudioService.loadAll(estudioId)
+  return generarPerfilEstudio(respuestas)
 }
 
 export default function FichaCliente() {
@@ -49,14 +33,19 @@ export default function FichaCliente() {
   const [runbook, setRunbook] = useState<Record<string, boolean>>({})
   const [copiado, setCopiado] = useState(false)
   const [descargando, setDescargando] = useState(false)
+  const [perfilMd, setPerfilMd] = useState<string>('')
 
   useEffect(() => {
     if (!id) return
     usuarioService.listClientes().then(async clientes => {
       const cliente = clientes.find(c => c.usuario.id === id)
       if (cliente?.estudio.id) {
-        const progreso = await progresoService.recalcularProgreso(cliente.estudio.id)
+        const [progreso, md] = await Promise.all([
+          progresoService.recalcularProgreso(cliente.estudio.id),
+          construirPerfilMd(cliente.estudio.id),
+        ])
         setData({ ...cliente, progreso })
+        setPerfilMd(md)
       } else {
         setData(cliente ?? null)
       }
@@ -70,8 +59,8 @@ export default function FichaCliente() {
   const runbookCompletados = RUNBOOK.filter(r => runbook[r.id]).length
 
   const copiarContexto = () => {
-    if (!data) return
-    navigator.clipboard.writeText(generarContextoMd(data))
+    if (!perfilMd) return
+    navigator.clipboard.writeText(perfilMd)
     setCopiado(true)
     setTimeout(() => setCopiado(false), 2000)
   }
@@ -81,8 +70,10 @@ export default function FichaCliente() {
     setDescargando(true)
     try {
       const nombre = data.estudio.denominacion || 'estudio'
+      const md = data.estudio.id ? (perfilMd || await construirPerfilMd(data.estudio.id)) : ''
       const archivos: Record<string, Uint8Array> = {
-        [`${nombre}/perfil_estudio.md`]: strToU8(generarContextoMd(data)),
+        [`${nombre}/perfil_estudio.md`]: strToU8(md),
+        [`${nombre}/clientes/.gitkeep`]: strToU8(''),
       }
 
       const carpetasConDocs = new Set<string>()
@@ -205,7 +196,7 @@ export default function FichaCliente() {
             </div>
 
             <pre className="text-xs text-text-dim bg-bg-3 rounded-lg p-4 overflow-auto max-h-64 whitespace-pre-wrap leading-relaxed border border-border/50">
-              {generarContextoMd(data)}
+              {perfilMd}
             </pre>
           </div>
 
@@ -226,8 +217,6 @@ export default function FichaCliente() {
 │   ├── impugnaciones/
 │   ├── honorarios/
 │   └── comunicaciones/        (opcional)
-├── datos/
-│   └── escalas-cct/
 └── clientes/                  (vacía — una subcarpeta por cliente)`}
             </pre>
           </div>
