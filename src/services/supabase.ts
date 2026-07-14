@@ -178,18 +178,34 @@ export const documentoService: DocumentoService = {
         .eq('estudio_id', estudioId)
         .eq('carpeta', doc.carpeta)
 
-      const prefijo = `modelo-${doc.carpeta}-`
-      const regex = new RegExp(`^${prefijo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\d+)\\.`)
-      let maxIdx = 0
-      for (const row of existentes ?? []) {
-        const m = (row.nombre as string).match(regex)
-        if (m) {
-          const n = parseInt(m[1], 10)
-          if (n > maxIdx) maxIdx = n
+      if (doc.carpeta === 'otros') {
+        const baseOriginal = doc.nombre.replace(/\.[a-zA-Z0-9]+$/, '')
+        const baseSanitizada = baseOriginal
+          .normalize('NFD').replace(/[̀-ͯ]/g, '')
+          .replace(/[^a-zA-Z0-9._-]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .toLowerCase() || 'archivo'
+        const nombresExistentes = new Set((existentes ?? []).map(r => (r.nombre as string).toLowerCase()))
+        let candidato = `${baseSanitizada}.${ext}`
+        let n = 2
+        while (nombresExistentes.has(candidato.toLowerCase())) {
+          candidato = `${baseSanitizada}-${n}.${ext}`
+          n++
         }
+        nombreCanonico = candidato
+      } else {
+        const prefijo = `modelo-${doc.carpeta}-`
+        const regex = new RegExp(`^${prefijo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\d+)\\.`)
+        let maxIdx = 0
+        for (const row of existentes ?? []) {
+          const m = (row.nombre as string).match(regex)
+          if (m) {
+            const nMatch = parseInt(m[1], 10)
+            if (nMatch > maxIdx) maxIdx = nMatch
+          }
+        }
+        nombreCanonico = `${prefijo}${maxIdx + 1}.${ext}`
       }
-
-      nombreCanonico = `${prefijo}${maxIdx + 1}.${ext}`
       storagePath = `${estudioId}/${doc.carpeta}/${nombreCanonico}`
 
       const { error: uploadError } = await supabase.storage

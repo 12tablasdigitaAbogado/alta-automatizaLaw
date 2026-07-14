@@ -186,7 +186,7 @@ function Nav({ onFinalizar }: { onFinalizar?: () => void }) {
             onClick={finalizar}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-teal text-bg hover:bg-teal-hover transition-colors"
           >
-            Continuar al siguiente paso
+            Grabar y continuar al siguiente paso
             <ChevronRight className="w-4 h-4" />
           </button>
         )
@@ -196,7 +196,7 @@ function Nav({ onFinalizar }: { onFinalizar?: () => void }) {
           onClick={irSiguiente}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-teal text-bg hover:bg-teal-hover transition-colors"
         >
-          Continuar
+          Grabar y continuar
           <ChevronRight className="w-4 h-4" />
         </button>
       )}

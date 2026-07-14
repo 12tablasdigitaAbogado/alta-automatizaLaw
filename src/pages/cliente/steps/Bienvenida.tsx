@@ -1,6 +1,7 @@
-import { Zap, FileText, Calendar, CheckCircle2, Lock } from 'lucide-react'
+import { Zap, FileText, Calendar, CheckCircle2, Lock, Download, Gift } from 'lucide-react'
 import { NavPasos } from '@/components/roadmap/NavPasos'
 import { useRoadmap } from '@/context/RoadmapContext'
+import anonimizadorMdUrl from '@/assets/anonimizador.md?url'
 
 const BENEFICIOS = [
   { icon: FileText, titulo: 'Tus modelos, listos', desc: 'Cargás tus plantillas una vez y el asistente las usa en cada escrito.' },
@@ -71,6 +72,43 @@ export function Bienvenida() {
         </div>
       </div>
 
+      {/* Regalo: skill anonimizador */}
+      <div className="bg-gradient-to-br from-teal/8 to-teal/[0.02] border border-teal/25 rounded-2xl p-5 mb-6">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-teal/15 border border-teal/30 flex items-center justify-center shrink-0">
+            <Gift className="w-5 h-5 text-teal" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-text mb-1">Regalo de bienvenida — Skill - Anonimizador de documentos</p>
+            <p className="text-sm text-text-dim leading-relaxed mb-3">
+              Descargá este archivo <code className="text-xs bg-bg-3 px-1.5 py-0.5 rounded">.md</code> y
+              pasáselo a Claude Desktop con este pedido:
+            </p>
+            <div className="bg-bg-3 border border-border rounded-lg p-3 mb-3">
+              <p className="text-xs text-text-dim leading-relaxed italic">
+                "Armame una skill de anonimización de documentos en base a este archivo, y
+                <strong className="text-text not-italic"> generala como archivo <code className="text-xs bg-bg px-1 rounded">.skill</code></strong> así
+                puedo guardarla."
+              </p>
+            </div>
+            <p className="text-sm text-text-dim leading-relaxed mb-3">
+              Cuando la genere en <code className="text-xs bg-bg-3 px-1.5 py-0.5 rounded">.skill</code>, Claude
+              te va a mostrar un botón <strong className="text-text">"Guardar skill"</strong> (o
+              <strong className="text-text"> "Guardar habilidad"</strong> si tenés Claude en español) — apretalo
+              para dejarla instalada. La vas a usar para tachar datos sensibles antes de compartir escritos.
+            </p>
+            <a
+              href={anonimizadorMdUrl}
+              download="anonimizador.md"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-teal text-bg hover:bg-teal-hover transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Descargar anonimizador.md
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Alerta candado */}
       <div className="flex items-start gap-3 bg-warning/5 border border-warning/20 rounded-xl p-4 mb-2">
         <Lock className="w-4 h-4 text-warning shrink-0 mt-0.5" />
@@ -82,7 +120,7 @@ export function Bienvenida() {
       <NavPasos
         paso={1}
         onSiguiente={handleSiguiente}
-        labelSiguiente="Empezar setup"
+        labelSiguiente="Comenzar"
       />
     </div>
   )

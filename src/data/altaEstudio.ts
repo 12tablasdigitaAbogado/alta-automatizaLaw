@@ -19,6 +19,7 @@ export type FieldType =
 export interface Opcion {
   value: string
   label: string
+  recomendado?: boolean
 }
 
 // Context que se le pasa a showIf:
@@ -42,6 +43,7 @@ export interface FieldDef {
   itemLabel?: string            // "Abogado", "Jurisdicción", etc.
   accept?: string               // solo file
   multiple?: boolean            // solo file
+  maxItems?: number             // solo file multiple: cap de archivos
   showIf?: (ctx: EvalCtx) => boolean
 }
 
@@ -431,7 +433,7 @@ export const INSTANCIAS: InstanciaDef[] = [
         ayuda: 'Elijas lo que elijas acá, la skill te va a preguntar en cada demanda igual, mostrando esta preferencia como sugerencia — nunca se salta la pregunta en vivo. Si no tenés preferencia, dejalo en blanco.',
         opciones: [
           { value: 'completa',        label: 'Completa de una sola vez' },
-          { value: 'por-bloques',     label: 'Por bloques, confirmando cada parte' },
+          { value: 'por-bloques',     label: 'Por bloques, confirmando cada parte', recomendado: true },
           { value: 'sin-preferencia', label: 'Sin preferencia' },
         ],
       },
@@ -497,17 +499,17 @@ export const INSTANCIAS: InstanciaDef[] = [
         id: 'demandaModeloBase',
         label: 'Modelo base de demanda',
         tipo: 'file',
-        accept: '.docx,.pdf,.doc,.txt',
+        accept: '.doc,.docx',
         ayuda: 'Este modelo se va a usar para todos los tipos de demanda.',
         showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica === true,
       },
-      { id: 'demandaDespidoSinCausa',           label: 'Despido sin causa.',                                          tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
-      { id: 'demandaDespidoIndirecto',          label: 'Despido indirecto.',                                          tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
-      { id: 'demandaTrabajoNoRegistrado',       label: 'Trabajo no registrado / mal registrado.',                     tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
-      { id: 'demandaDespidoEmbarazoMatrimonio', label: 'Despido por embarazo / matrimonio.',                          tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
-      { id: 'demandaDespidoEnfermedad',         label: 'Despido durante enfermedad inculpable / reserva de puesto.',  tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
-      { id: 'demandaDespidoDiscriminatorio',    label: 'Despido discriminatorio.',                                    tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
-      { id: 'demandaExtincionFuerzaMayor',      label: 'Extinción por fuerza mayor / falta de trabajo.',              tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
+      { id: 'demandaDespidoSinCausa',           label: 'Despido sin causa.',                                          tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
+      { id: 'demandaDespidoIndirecto',          label: 'Despido indirecto.',                                          tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
+      { id: 'demandaTrabajoNoRegistrado',       label: 'Trabajo no registrado / mal registrado.',                     tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
+      { id: 'demandaDespidoEmbarazoMatrimonio', label: 'Despido por embarazo / matrimonio.',                          tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
+      { id: 'demandaDespidoEnfermedad',         label: 'Despido durante enfermedad inculpable / reserva de puesto.',  tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
+      { id: 'demandaDespidoDiscriminatorio',    label: 'Despido discriminatorio.',                                    tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
+      { id: 'demandaExtincionFuerzaMayor',      label: 'Extinción por fuerza mayor / falta de trabajo.',              tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.demandaUsarBaseUnica !== true },
 
       // ─── Modelos de telegrama / carta documento ────────────────────────────
       {
@@ -525,18 +527,18 @@ export const INSTANCIAS: InstanciaDef[] = [
         id: 'telegramaModeloBase',
         label: 'Modelo base de telegrama / CD',
         tipo: 'file',
-        accept: '.docx,.pdf,.doc,.txt',
+        accept: '.doc,.docx',
         ayuda: 'Este modelo se va a usar para todos los supuestos.',
         showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica === true,
       },
-      { id: 'telegramaRegistracion',          label: 'Registración / aclaración de la situación laboral.', tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
-      { id: 'telegramaSubRegistracion',       label: 'Sub-registración.',                                  tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
-      { id: 'telegramaHostigamiento',         label: 'Hostigamiento / acoso laboral.',                     tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
-      { id: 'telegramaDiferenciasSalariales', label: 'Diferencias salariales / horas extras.',             tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
-      { id: 'telegramaCertificadosArt80',     label: 'Certificados de trabajo (art. 80 LCT).',             tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
-      { id: 'telegramaDespidoIndirecto',      label: 'Despido indirecto / autodespido.',                   tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
-      { id: 'telegramaEnfermedadInculpable',  label: 'Enfermedad inculpable / reserva de puesto.',         tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
-      { id: 'telegramaRechazoMisiva',         label: 'Rechazo de misiva del empleador.',                   tipo: 'file', accept: '.docx,.pdf,.doc,.txt', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
+      { id: 'telegramaRegistracion',          label: 'Registración / aclaración de la situación laboral.', tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
+      { id: 'telegramaSubRegistracion',       label: 'Sub-registración.',                                  tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
+      { id: 'telegramaHostigamiento',         label: 'Hostigamiento / acoso laboral.',                     tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
+      { id: 'telegramaDiferenciasSalariales', label: 'Diferencias salariales / horas extras.',             tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
+      { id: 'telegramaCertificadosArt80',     label: 'Certificados de trabajo (art. 80 LCT).',             tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
+      { id: 'telegramaDespidoIndirecto',      label: 'Despido indirecto / autodespido.',                   tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
+      { id: 'telegramaEnfermedadInculpable',  label: 'Enfermedad inculpable / reserva de puesto.',         tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
+      { id: 'telegramaRechazoMisiva',         label: 'Rechazo de misiva del empleador.',                   tipo: 'file', accept: '.doc,.docx', showIf: ctx => ctx.localAnswers.telegramaUsarBaseUnica !== true },
 
       // ─── Liquidación ───────────────────────────────────────────────────────
       {
@@ -558,8 +560,8 @@ export const INSTANCIAS: InstanciaDef[] = [
         tipo: 'section',
         label: 'Honorarios (separados, son dos documentos distintos)',
       },
-      { id: 'honorariosPactoCuotaLitis', label: 'Modelo de pacto de cuota litis.',                                                 tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'honorariosContrato',        label: 'Modelo de contrato de honorarios, si lo usan además del pacto o en su lugar.',   tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
+      { id: 'honorariosPactoCuotaLitis', label: 'Modelo de pacto de cuota litis.',                                                 tipo: 'file', accept: '.doc,.docx' },
+      { id: 'honorariosContrato',        label: 'Modelo de contrato de honorarios, si lo usan además del pacto o en su lugar.',   tipo: 'file', accept: '.doc,.docx' },
 
       // ─── Pericial ──────────────────────────────────────────────────────────
       {
@@ -567,7 +569,7 @@ export const INSTANCIAS: InstanciaDef[] = [
         tipo: 'section',
         label: 'Pericial',
       },
-      { id: 'periciaImpugnacion', label: 'Modelo de impugnación pericial.', tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
+      { id: 'periciaImpugnacion', label: 'Modelo de impugnación pericial.', tipo: 'file', accept: '.doc,.docx' },
 
       // ─── Escritos de trámite ───────────────────────────────────────────────
       {
@@ -575,17 +577,17 @@ export const INSTANCIAS: InstanciaDef[] = [
         tipo: 'section',
         label: 'Escritos de trámite (uno por tipo, todos opcionales)',
       },
-      { id: 'escritoPoder',                  label: 'Poder.',                                                      tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'escritoSegundoTraslado',        label: 'Segundo traslado / réplica a la contestación.',               tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'escritoAperturaPrueba',         label: 'Pedido de apertura a prueba.',                                tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'escritoCedulaNotificacion',     label: 'Cédula de notificación.',                                     tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'escritoCedulaPrueba',           label: 'Cédula de prueba (testigos / absolución de posiciones).',     tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'escritoOficioPrueba',           label: 'Oficio (de prueba).',                                          tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'escritoAcreditacionOficio',     label: 'Acreditación de oficio.',                                     tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'escritoAcuerdoConciliatorio',   label: 'Acuerdo conciliatorio.',                                      tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'escritoEjecucionSentencia',     label: 'Escrito de inicio de ejecución de sentencia.',                tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'escritoRecurso',                label: 'Recurso (revocatoria / aclaratoria).',                        tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'escritoRebeldia',               label: 'Rebeldía.',                                                   tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
+      { id: 'escritoPoder',                  label: 'Poder.',                                                      tipo: 'file', accept: '.doc,.docx' },
+      { id: 'escritoSegundoTraslado',        label: 'Segundo traslado / réplica a la contestación.',               tipo: 'file', accept: '.doc,.docx' },
+      { id: 'escritoAperturaPrueba',         label: 'Pedido de apertura a prueba.',                                tipo: 'file', accept: '.doc,.docx' },
+      { id: 'escritoCedulaNotificacion',     label: 'Cédula de notificación.',                                     tipo: 'file', accept: '.doc,.docx' },
+      { id: 'escritoCedulaPrueba',           label: 'Cédula de prueba (testigos / absolución de posiciones).',     tipo: 'file', accept: '.doc,.docx' },
+      { id: 'escritoOficioPrueba',           label: 'Oficio (de prueba).',                                          tipo: 'file', accept: '.doc,.docx' },
+      { id: 'escritoAcreditacionOficio',     label: 'Acreditación de oficio.',                                     tipo: 'file', accept: '.doc,.docx' },
+      { id: 'escritoAcuerdoConciliatorio',   label: 'Acuerdo conciliatorio.',                                      tipo: 'file', accept: '.doc,.docx' },
+      { id: 'escritoEjecucionSentencia',     label: 'Escrito de inicio de ejecución de sentencia.',                tipo: 'file', accept: '.doc,.docx' },
+      { id: 'escritoRecurso',                label: 'Recurso (revocatoria / aclaratoria).',                        tipo: 'file', accept: '.doc,.docx' },
+      { id: 'escritoRebeldia',               label: 'Rebeldía.',                                                   tipo: 'file', accept: '.doc,.docx' },
 
       // ─── Ofrecimiento de prueba ────────────────────────────────────────────
       {
@@ -597,7 +599,7 @@ export const INSTANCIAS: InstanciaDef[] = [
         id: 'ofrecimientoPruebaModelo',
         label: 'Modelo de ofrecimiento de prueba.',
         tipo: 'file',
-        accept: '.docx,.pdf,.doc,.txt',
+        accept: '.doc,.docx',
         ayuda: 'Solo aplica si en la jurisdicción del estudio el ofrecimiento es un acto separado de la demanda (ver Instancia 2).',
       },
 
@@ -607,8 +609,24 @@ export const INSTANCIAS: InstanciaDef[] = [
         tipo: 'section',
         label: 'Alegato y recursos',
       },
-      { id: 'alegatoModelo',         label: 'Modelo de alegato.',                                        tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
-      { id: 'recursoApelacionModelo',label: 'Modelo de expresión de agravios / recurso de apelación.',   tipo: 'file', accept: '.docx,.pdf,.doc,.txt' },
+      { id: 'alegatoModelo',         label: 'Modelo de alegato.',                                        tipo: 'file', accept: '.doc,.docx' },
+      { id: 'recursoApelacionModelo',label: 'Modelo de expresión de agravios / recurso de apelación.',   tipo: 'file', accept: '.doc,.docx' },
+
+      // ─── Otros modelos ─────────────────────────────────────────────────────
+      {
+        id: 'sectionOtrosModelos',
+        tipo: 'section',
+        label: 'Otros modelos',
+      },
+      {
+        id: 'modelosExtras',
+        label: 'Modelos adicionales (hasta 5)',
+        tipo: 'file',
+        accept: '.doc,.docx',
+        multiple: true,
+        maxItems: 5,
+        ayuda: 'Espacio libre para cualquier modelo que no encaje en las categorías anteriores. Máximo 5 archivos.',
+      },
     ],
   },
 ]
@@ -671,4 +689,7 @@ export const CARPETAS_MODELOS: { fieldId: string; carpeta: string }[] = [
   // Alegato y recursos
   { fieldId: 'alegatoModelo',          carpeta: 'modelos/alegato' },
   { fieldId: 'recursoApelacionModelo', carpeta: 'modelos/recurso-apelacion' },
+
+  // Otros modelos (espacio libre, hasta 5 archivos)
+  { fieldId: 'modelosExtras',          carpeta: 'modelos/otros' },
 ]

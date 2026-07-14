@@ -30,4 +30,5 @@ export const LABEL_CARPETA: Record<string, string> = {
   impugnaciones: 'Impugnaciones periciales',
   honorarios: 'Contratos de honorarios',
   comunicaciones: 'Comunicaciones con clientes',
+  otros: 'Otros modelos',
 }

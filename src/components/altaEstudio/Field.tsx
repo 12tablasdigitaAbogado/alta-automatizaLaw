@@ -108,13 +108,18 @@ function renderInput({ field, value, onChange, files, onFilesChange, documentosG
               type="button"
               onClick={() => onChange(o.value)}
               className={cn(
-                'w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-colors',
+                'w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-colors flex items-center justify-between gap-3',
                 value === o.value
                   ? 'border-teal bg-teal/10 text-text'
                   : 'border-border text-text-dim hover:border-border-soft hover:text-text'
               )}
             >
-              {o.label}
+              <span>{o.label}</span>
+              {o.recomendado && (
+                <span className="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium tracking-wide uppercase bg-success/15 text-success border border-success/30">
+                  Recomendado
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -265,10 +270,33 @@ function FileDrop({ field, files, onChange, documentosGuardados, onEliminarDocum
 }) {
   const [hover, setHover] = useState(false)
   const [eliminandoId, setEliminandoId] = useState<string | null>(null)
+  const [rechazoMsg, setRechazoMsg] = useState<string | null>(null)
+  const extsPermitidas = (field.accept ?? '')
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean)
+  const extensionOk = (name: string) => {
+    if (extsPermitidas.length === 0) return true
+    const lower = name.toLowerCase()
+    return extsPermitidas.some(ext => lower.endsWith(ext))
+  }
+  const yaCargados = documentosGuardados.length + files.length
+  const cupoRestante = field.maxItems ? Math.max(0, field.maxItems - yaCargados) : Infinity
   const handleFiles = (list: FileList | null) => {
     if (!list) return
-    const nuevos = Array.from(list)
-    onChange(field.multiple ? [...files, ...nuevos] : nuevos.slice(0, 1))
+    const todos = Array.from(list)
+    const validos = todos.filter(f => extensionOk(f.name))
+    const rechazadosExt = todos.length - validos.length
+    const dentroCupo = field.multiple && cupoRestante !== Infinity
+      ? validos.slice(0, cupoRestante)
+      : validos
+    const rechazadosCupo = validos.length - dentroCupo.length
+    const partes: string[] = []
+    if (rechazadosExt > 0) partes.push(`Se ignoraron ${rechazadosExt} archivo(s) por formato (solo ${extsPermitidas.join(', ')}).`)
+    if (rechazadosCupo > 0) partes.push(`Máximo ${field.maxItems} archivos: se ignoraron ${rechazadosCupo} adicional(es).`)
+    setRechazoMsg(partes.length ? partes.join(' ') : null)
+    if (dentroCupo.length === 0) return
+    onChange(field.multiple ? [...files, ...dentroCupo] : dentroCupo.slice(0, 1))
   }
   const eliminarGuardado = async (docId: string) => {
     if (!onEliminarDocumento) return
@@ -287,7 +315,7 @@ function FileDrop({ field, files, onChange, documentosGuardados, onEliminarDocum
         onDrop={e => { e.preventDefault(); setHover(false); handleFiles(e.dataTransfer.files) }}
       >
         <Upload className="w-4 h-4" />
-        Arrastrá o hacé clic para subir {field.accept && <span className="text-xs">({field.accept})</span>}
+        Arrastrá o hacé clic para subir {field.accept && <span className="text-xs">(solo {field.accept})</span>}
         <input
           type="file"
           accept={field.accept}
@@ -296,6 +324,12 @@ function FileDrop({ field, files, onChange, documentosGuardados, onEliminarDocum
           onChange={e => handleFiles(e.target.files)}
         />
       </label>
+      {rechazoMsg && (
+        <p className="mt-1.5 text-xs text-coral">{rechazoMsg}</p>
+      )}
+      {field.multiple && field.maxItems && (
+        <p className="mt-1 text-xs text-text-faint">{yaCargados} de {field.maxItems} archivos cargados</p>
+      )}
       {(documentosGuardados.length > 0 || files.length > 0) && (
         <div className="mt-2 space-y-1.5">
           {documentosGuardados.map(doc => {
