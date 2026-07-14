@@ -155,12 +155,13 @@ function WizardBody({ onFinalizar }: { onFinalizar?: () => void }) {
 }
 
 function Nav({ onFinalizar }: { onFinalizar?: () => void }) {
-  const { instancias, instanciaActiva, setInstanciaActiva, guardarInstanciaActual } = useAltaEstudio()
+  const { instancias, instanciaActiva, setInstanciaActiva, guardarInstanciaActual, saving } = useAltaEstudio()
   const esUltima = instanciaActiva === instancias.length
   const esPrimera = instanciaActiva === 1
 
-  const irSiguiente = () => setInstanciaActiva(instanciaActiva + 1)
+  const irSiguiente = () => { if (!saving) setInstanciaActiva(instanciaActiva + 1) }
   const finalizar = async () => {
+    if (saving) return
     try { await guardarInstanciaActual() } catch { /* saveError ya mostrado */ }
     onFinalizar?.()
   }
@@ -184,7 +185,8 @@ function Nav({ onFinalizar }: { onFinalizar?: () => void }) {
           <button
             type="button"
             onClick={finalizar}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-teal text-bg hover:bg-teal-hover transition-colors"
+            disabled={saving}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-teal text-bg hover:bg-teal-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Grabar y continuar al siguiente paso
             <ChevronRight className="w-4 h-4" />

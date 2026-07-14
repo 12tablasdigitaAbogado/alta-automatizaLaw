@@ -155,10 +155,17 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
     setArchivosState(prev => ({ ...prev, [fieldId]: files }))
   }
 
+  // Candado por instancia: evita que el mismo `guardarInstancia(n)` corra
+  // dos veces en paralelo o consecutivo (doble click, navegación rápida, etc.),
+  // que era lo que subía los archivos de la instancia 9 duplicados.
+  const savingLock = useRef<Set<number>>(new Set())
+
   // Persistencia por instancia (llamada al pasar a la siguiente o al blur explícito).
   const guardarInstancia = async (idx: number) => {
     const inst = INSTANCIAS[idx - 1]
     if (!inst) return
+    if (savingLock.current.has(idx)) return
+    savingLock.current.add(idx)
     const payload = respuestas[inst.id] ?? {}
     setSaving(true); setSaveError(null)
     try {
@@ -208,6 +215,7 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
       setSaveError(msg)
       throw e
     } finally {
+      savingLock.current.delete(idx)
       setSaving(false)
     }
   }
