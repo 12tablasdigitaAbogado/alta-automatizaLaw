@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Copy, Check, CheckSquare, Square,
-  CalendarDays, FolderOpen, FileText, Download
+  CalendarDays, FolderOpen, FileText, Download, LogIn
 } from 'lucide-react'
 import { zip, strToU8 } from 'fflate'
 import type { ClienteResumen } from '@/types'
@@ -34,6 +34,8 @@ export default function FichaCliente() {
   const [copiado, setCopiado] = useState(false)
   const [descargando, setDescargando] = useState(false)
   const [perfilMd, setPerfilMd] = useState<string>('')
+  const [impersonando, setImpersonando] = useState(false)
+  const [impersonarError, setImpersonarError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -63,6 +65,32 @@ export default function FichaCliente() {
     navigator.clipboard.writeText(perfilMd)
     setCopiado(true)
     setTimeout(() => setCopiado(false), 2000)
+  }
+
+  const entrarComoCliente = async () => {
+    if (!data || impersonando) return
+    setImpersonarError(null)
+    setImpersonando(true)
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      if (!token) throw new Error('Sesión expirada, volvé a iniciar sesión')
+
+      const { data: resp, error } = await supabase.functions.invoke('impersonar-cliente', {
+        body: {
+          clienteUserId: data.usuario.id,
+          redirectTo: window.location.origin,
+        },
+      })
+      if (error) throw new Error(error.message)
+      if (!resp?.url) throw new Error('No se recibió el link')
+
+      window.open(resp.url, '_blank', 'noopener,noreferrer')
+    } catch (e) {
+      setImpersonarError(e instanceof Error ? e.message : 'Error desconocido')
+    } finally {
+      setImpersonando(false)
+    }
   }
 
   const descargarZip = async () => {
@@ -146,6 +174,18 @@ export default function FichaCliente() {
           <p className="text-text-dim mt-1 text-sm">{estudio.abogadoResponsable} · {usuario.email}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
+          <button
+            onClick={entrarComoCliente}
+            disabled={impersonando}
+            title="Abre una pestaña nueva logueado como este cliente. Usá ventana incógnito para no cerrar tu sesión de admin."
+            className="flex items-center gap-1.5 text-xs text-text-dim bg-bg-3 border border-border px-3 py-1.5 rounded-lg hover:border-teal/30 hover:text-teal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {impersonando
+              ? <div className="w-3.5 h-3.5 border border-text-dim border-t-teal rounded-full animate-spin" />
+              : <LogIn className="w-3.5 h-3.5" />
+            }
+            {impersonando ? 'Generando...' : 'Entrar como cliente'}
+          </button>
           <span className={cn(
             'text-xs px-3 py-1.5 rounded-full border font-medium',
             alta.estado === 'agendada' ? 'text-teal bg-teal/8 border-teal/20' :
@@ -162,6 +202,12 @@ export default function FichaCliente() {
           </div>
         </div>
       </div>
+
+      {impersonarError && (
+        <div className="bg-coral/8 border border-coral/30 rounded-xl p-3 mb-4 text-sm text-coral">
+          No pude generar el acceso: {impersonarError}
+        </div>
+      )}
 
       {/* Reunión agendada */}
       {alta.estado === 'agendada' && (

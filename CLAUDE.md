@@ -515,6 +515,28 @@ interface ProgresoRoadmap {
 
 ---
 
+## Impersonation — "Entrar como cliente" (soporte)
+
+Sirve para que un operador reproduzca bugs de UX del cliente ("se me pone la pantalla en negro", "no me guarda") sin pedirle la password. Ver los datos con RLS de operador no alcanza — hay bugs que dependen del estado local del wizard, del context, del render, etc.
+
+**Edge Function `impersonar-cliente`** (Supabase project `ddxqnwbzluqikasdhbyv`, `verify_jwt: true`):
+1. Toma el JWT del caller del header `Authorization`.
+2. Valida contra `perfiles.rol` (via service_role client) que sea `'operador'` — si no, 403.
+3. Lee `perfiles.email` del `clienteUserId` recibido en el body. Rechaza si el target es otro operador o si es el propio caller.
+4. Llama `admin.auth.admin.generateLink({ type: 'magiclink', email })` — NO envía mail (generateLink devuelve la URL sin enviarla, ese es el punto).
+5. Loggea `{event: 'impersonation', operador, cliente, ts}` en los logs de la function para auditoría.
+6. Devuelve `{ url, email }`.
+
+**Botón en `FichaCliente.tsx`** — "Entrar como cliente" en el header, al lado del badge de estado. Invoca la function vía `supabase.functions.invoke('impersonar-cliente', { body: { clienteUserId, redirectTo: window.location.origin } })` y abre la URL en `window.open(..., '_blank')`.
+
+**Advertencia de UX (documentada en el `title` del botón):** el magic link comparte el storage del browser con la sesión de admin. Si el operador abre en pestaña común, la nueva pestaña queda como cliente pero potencialmente **pisa** la sesión de admin en las demás tabs del mismo browser al refrescar. **Usar ventana incógnito o browser distinto** para conservar la sesión de admin en paralelo.
+
+**Cambios de datos:** ninguno por el hecho de entrar. Si el operador toca algo adentro del wizard, escribe como el cliente (mismo `auth.uid()`), así que mirar-y-no-tocar salvo que se quiera arreglar algo puntual.
+
+**Plan B si falla el magic link:** el operador ya tiene RLS `ALL` en casi todas las tablas — puede seguir mirando los datos crudos desde `FichaCliente`. La impersonation es específicamente para reproducir bugs de UI.
+
+---
+
 ## Progreso en la vista admin
 
 **Problema:** `ListaClientes` y `FichaCliente` leían el progreso cacheado del join con `progreso_roadmap`, que podía estar desactualizado si el UPSERT del cliente falló.
