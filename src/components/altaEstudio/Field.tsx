@@ -72,6 +72,7 @@ function renderInput({ field, value, onChange, files, onFilesChange, documentosG
           value={(value as number | string) ?? ''}
           placeholder={field.placeholder}
           onChange={e => onChange(e.target.value === '' ? '' : Number(e.target.value))}
+          onWheel={e => (e.target as HTMLInputElement).blur()}
           className={inputCls}
         />
       )
