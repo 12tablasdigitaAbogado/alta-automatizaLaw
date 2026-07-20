@@ -181,6 +181,7 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
     setSaving(true); setSaveError(null)
     try {
       let idEstudio = estudioId
+      let creoEstudioNuevo = false
       // Instancia 1 sin estudio previo → crear vía RPC existente
       if (inst.id === 'datos-estudio' && !idEstudio) {
         console.log('[wiz] guardarInstancia calling RPC crear_estudio_inicial')
@@ -193,14 +194,22 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
           email:                (payload.email                as string) ?? '',
           pieFirma:             (payload.pieFirma             as string) ?? '',
         })
-        console.log('[wiz] RPC done, newEstudioId=', idEstudio, ' → calling refreshPerfil()')
-        await refreshPerfil()
-        console.log('[wiz] refreshPerfil() done')
+        creoEstudioNuevo = true
+        console.log('[wiz] RPC done, newEstudioId=', idEstudio)
+        // IMPORTANTE: refreshPerfil() se llama DESPUÉS de saveInstancia. Si lo
+        // llamamos antes, cambia usuario.estudioId → dispara useEffect[estudioId]
+        // → loadAll lee la DB SIN los abogados (todavía no se insertaron) y pisa
+        // el state en memoria con abogados: [] y cantidadAbogados: undefined.
       }
       if (idEstudio) {
         console.log('[wiz] saveInstancia START inst.id=', inst.id)
         await altaEstudioService.saveInstancia(idEstudio, inst.id, payload)
         console.log('[wiz] saveInstancia OK inst.id=', inst.id)
+        if (creoEstudioNuevo) {
+          console.log('[wiz] refreshPerfil() (post-save)')
+          await refreshPerfil()
+          console.log('[wiz] refreshPerfil() done')
+        }
         // Instancia 9: subir archivos pendientes
         if (inst.id === 'modelos-plantillas') {
           let subioAlgo = false
