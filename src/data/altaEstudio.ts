@@ -244,7 +244,6 @@ export const INSTANCIAS: InstanciaDef[] = [
         id: 'particularidades',
         label: '¿Hay alguna etapa propia de tu provincia que no esté en esta lista, o que funcione distinto a como la describimos?',
         tipo: 'textarea',
-        obligatorio: true,
         ayuda: 'Contanos qué es y en qué momento del proceso ocurre. Esto nos ayuda a detectar si necesitamos ajustar o crear algo nuevo para tu jurisdicción.',
       },
     ],
