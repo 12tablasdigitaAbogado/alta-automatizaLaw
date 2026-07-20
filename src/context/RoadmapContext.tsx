@@ -62,7 +62,11 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
   // Sync activeEstudioId when auth state changes (e.g., after first saveEstudio creates the estudio)
   useEffect(() => {
     const id = usuario?.estudioId ?? ''
-    if (id && id !== activeEstudioId) setActiveEstudioId(id)
+    console.log('[wiz] RoadmapContext sync usuario.estudioId=', id, 'activeEstudioId=', activeEstudioId)
+    if (id && id !== activeEstudioId) {
+      console.log('[wiz] RoadmapContext → setActiveEstudioId to', id)
+      setActiveEstudioId(id)
+    }
   }, [usuario?.estudioId])
 
   const refrescarProgreso = useCallback(async () => {
@@ -79,7 +83,13 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!activeEstudioId) { setLoading(false); return }
-    setLoading(true)
+    // Solo mostramos el loader full-screen en el primer load. En recargas
+    // posteriores (ej.: cuando se crea el estudio en Instancia 1 del wizard y
+    // cambia el estudioId) hacemos refresh en background para no desmontar el
+    // wizard y perder su estado interno (instancia activa, etc.).
+    const esPrimerLoad = progreso === null
+    console.log('[wiz] RoadmapContext useEffect[activeEstudioId] fired, activeEstudioId=', activeEstudioId, 'esPrimerLoad=', esPrimerLoad)
+    if (esPrimerLoad) setLoading(true)
     Promise.all([
       estudioService.getEstudio(activeEstudioId),
       documentoService.listDocumentos(activeEstudioId),
@@ -89,6 +99,7 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
       progresoService.recalcularProgreso(activeEstudioId),
       altaService.getAlta(activeEstudioId),
     ]).then(([est, docs, cfg, ctx, chk, prog, alt]) => {
+      console.log('[wiz] RoadmapContext Promise.all resolved, pasos=', prog.pasos)
       if (est) setEstudio(est)
       setDocumentos(docs)
       setConfiguracion(cfg)
@@ -99,9 +110,12 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
       const pasos = prog.pasos
       const ultimo = [1, 2, 3, 4, 5, 6].reverse().find(p => pasos[p] === 'completo')
       if (ultimo && ultimo < 6) {
+        console.log('[wiz] RoadmapContext bumping pasoActivo to', ultimo + 1)
         setPasoActivo(prev => Math.max(prev, ultimo + 1))
       }
-    }).finally(() => setLoading(false))
+    }).catch(err => {
+      console.error('[wiz] RoadmapContext Promise.all REJECTED', err)
+    }).finally(() => { if (esPrimerLoad) setLoading(false) })
   }, [activeEstudioId])
 
   const saveEstudio = async (data: Partial<Estudio>) => {

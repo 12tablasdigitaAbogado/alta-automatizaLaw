@@ -30,12 +30,14 @@ function RoadmapInner() {
   }, [pasoActivo])
 
   if (loading) {
+    console.log('[wiz] RoadmapInner render FULL-SCREEN LOADER (loading=true)')
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-teal/30 border-t-teal rounded-full animate-spin" />
       </div>
     )
   }
+  console.log('[wiz] RoadmapInner render normal, pasoActivo=', pasoActivo)
 
   const renderPaso = () => {
     switch (pasoActivo) {

@@ -89,6 +89,11 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
   const { usuario, refreshPerfil } = useAuth()
   const estudioId = usuario?.estudioId ?? ''
 
+  useEffect(() => {
+    console.log('[wiz] AltaEstudioProvider MOUNT')
+    return () => console.log('[wiz] AltaEstudioProvider UNMOUNT')
+  }, [])
+
   const [respuestas, setRespuestas] = useState<Respuestas>({})
   const [archivos, setArchivosState] = useState<Record<string, File[]>>({})
   const [documentos, setDocumentos] = useState<Documento[]>([])
@@ -111,6 +116,7 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelado = false
     async function cargar() {
+      console.log('[wiz] AltaEstudioContext useEffect[estudioId] fired, estudioId=', estudioId)
       setLoading(true)
       // Prime desde localStorage (respuesta rápida)
       const local = loadLocal(estudioId)
@@ -119,6 +125,7 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
         try {
           const remoto = await altaEstudioService.loadAll(estudioId)
           if (!cancelado) {
+            console.log('[wiz] AltaEstudioContext loadAll OK, keys=', Object.keys(remoto))
             // El back manda; el local solo se usa si el back no tiene nada de la instancia
             setRespuestas(prev => ({ ...prev, ...remoto }))
           }
@@ -129,7 +136,10 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
       } else {
         setDocumentos([])
       }
-      if (!cancelado) setLoading(false)
+      if (!cancelado) {
+        console.log('[wiz] AltaEstudioContext load done, setLoading(false)')
+        setLoading(false)
+      }
     }
     cargar()
     return () => { cancelado = true }
@@ -166,12 +176,14 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
     if (!inst) return
     if (savingLock.current.has(idx)) return
     savingLock.current.add(idx)
+    console.log('[wiz] guardarInstancia START idx=', idx, 'inst.id=', inst.id, 'estudioId=', estudioId)
     const payload = respuestas[inst.id] ?? {}
     setSaving(true); setSaveError(null)
     try {
       let idEstudio = estudioId
       // Instancia 1 sin estudio previo → crear vía RPC existente
       if (inst.id === 'datos-estudio' && !idEstudio) {
+        console.log('[wiz] guardarInstancia calling RPC crear_estudio_inicial')
         idEstudio = await estudioService.saveEstudio('', {
           denominacion:         (payload.denominacion         as string) ?? '',
           domicilio:            (payload.domicilio            as string) ?? '',
@@ -181,10 +193,14 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
           email:                (payload.email                as string) ?? '',
           pieFirma:             (payload.pieFirma             as string) ?? '',
         })
+        console.log('[wiz] RPC done, newEstudioId=', idEstudio, ' → calling refreshPerfil()')
         await refreshPerfil()
+        console.log('[wiz] refreshPerfil() done')
       }
       if (idEstudio) {
+        console.log('[wiz] saveInstancia START inst.id=', inst.id)
         await altaEstudioService.saveInstancia(idEstudio, inst.id, payload)
+        console.log('[wiz] saveInstancia OK inst.id=', inst.id)
         // Instancia 9: subir archivos pendientes
         if (inst.id === 'modelos-plantillas') {
           let subioAlgo = false
@@ -212,15 +228,18 @@ export function AltaEstudioProvider({ children }: { children: ReactNode }) {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
+      console.error('[wiz] guardarInstancia ERROR', msg, e)
       setSaveError(msg)
       throw e
     } finally {
       savingLock.current.delete(idx)
       setSaving(false)
+      console.log('[wiz] guardarInstancia FINALLY idx=', idx)
     }
   }
 
   const setInstanciaActiva = (n: number) => {
+    console.log('[wiz] setInstanciaActiva called from=', instanciaActiva, 'to=', n)
     // Antes de moverme, guardo la instancia actual (fire & forget con feedback).
     guardarInstancia(instanciaActiva).catch(() => { /* saveError ya seteado */ })
     setInstanciaActivaState(Math.max(1, Math.min(INSTANCIAS.length, n)))
