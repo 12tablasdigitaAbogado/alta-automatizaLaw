@@ -194,7 +194,7 @@ export const documentoService: DocumentoService = {
         }
         nombreCanonico = candidato
       } else {
-        const prefijo = `modelo-${doc.carpeta}-`
+        const prefijo = `modelo-${doc.carpeta.replace(/\//g, '-')}-`
         const regex = new RegExp(`^${prefijo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\d+)\\.`)
         let maxIdx = 0
         for (const row of existentes ?? []) {

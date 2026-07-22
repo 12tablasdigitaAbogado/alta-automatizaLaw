@@ -109,8 +109,10 @@ export default function FichaCliente() {
         const storagePath = doc.storagePath ?? `${doc.estudioId}/${doc.carpeta}/${doc.id}-${doc.nombre}`
         const { data: blob, error } = await supabase.storage.from('modelos').download(storagePath)
         if (error || !blob) return
-        archivos[`${nombre}/modelos/${doc.carpeta}/${doc.nombre}`] = new Uint8Array(await blob.arrayBuffer())
-        carpetasConDocs.add(doc.carpeta)
+        const [carpetaRaiz, ...resto] = doc.carpeta.split('/')
+        const prefijo = resto.length > 0 ? `${resto.join('-')}-` : ''
+        archivos[`${nombre}/modelos/${carpetaRaiz}/${prefijo}${doc.nombre}`] = new Uint8Array(await blob.arrayBuffer())
+        carpetasConDocs.add(carpetaRaiz)
       }))
 
       await Promise.all(Object.entries(FALLBACKS_POR_CARPETA).map(async ([carpeta, modelos]) => {
